@@ -1,0 +1,67 @@
+---
+title: "strings_Shaohua"
+subtitle: "Data Science for Linguists (LING 2340) Fall 2021"
+author: "Shaohua Fang"
+date: "10/05/2021"
+output: 
+  github_document: 
+    toc: TRUE
+
+always_allow_html: true
+---
+
+```{r setup}
+##Set knitr options (show both code and output, show output w/o leading #, make figures smaller, hold figures until after chunk)
+knitr::opts_chunk$set(echo=TRUE, include=TRUE, comment=NA, fig.height=3, fig.width=4.2, fig.show="hold")
+```
+
+# Project idea
+
+## Working title
+Structural change and L2 sentence processing 
+
+## Brief summary
+This project is to examine how L2 learners would use the information encoded in a verb and the relationship between this verb and its adjacent nouns for structural ambiguity resolution during sentence comprehension. For example, verbs such as 'see' tend to take either a noun phrase or a sentence as their complements, but verbs such as 'visit' likely take either a noun phrase or nothing as their complements. L2 learners may differ from native speakers in their processing profiles, not only because L2 learners may use such information to a lesser extent compared to native speakers, but because they may be negatively affected by their L1.  
+
+## Data
+The data were collected as part of a combination of several unrelated self-paced reading experiments. As a plan, the reaction time data would be modeled as a function of a set of categorical variables and continuous variables. Data cleaning would involve the removal of apparent outliers for data points, and participants who failed to pay enough attention during the experimentation would be excluded as well based on certain cut-off points that are widely accepted in the field. Data were collected from 75 Chinese learners of English. It remains to be seen whether I will include some corpus data to check the type of complements each verb used in the experiment.   
+
+
+## Analysis
+The end goal is to come up with a conclusion to the research questions based on the statistical analyses. For now, the attempted analysis is linear mixed-effects models. There are at least two hypotheses to be tested - 1) whether L2 learners differ from native speakers in their processing profiles. 2) whether L2 learners do better as their proficiency increases. I am not quite sure how I may include any predictive analysis in my case? One predictive analysis I am considering is to analyzed the data with Bayesian mixed-effect models instead, which to my understating may be counted as a predictive model. 
+
+## Session info
+```{r}
+sessionInfo()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
