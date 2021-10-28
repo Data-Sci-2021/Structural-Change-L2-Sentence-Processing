@@ -6,11 +6,6 @@ Shaohua Fang
 -   [1st progress report](#1st-progress-report)
     -   [Overview](#overview)
 
-``` r
-##Set knitr options (show both code and output, show output w/o leading #, make figures smaller, hold figures until after chunk)
-knitr::opts_chunk$set(echo=TRUE, include=TRUE, comment=NA, fig.height=3, fig.width=4.2, fig.show="hold")
-```
-
 # 1st progress report
 
 ## Overview
