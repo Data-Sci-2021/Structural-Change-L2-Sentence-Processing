@@ -32,6 +32,7 @@ each instance containing these verbs and how to tag the kind of
 complement each verb takes.
 
 Since the data aim for a journal publication, I therefore will publicly
-share 18% of the data (1000/5517) for the project in this class, but the
-presentation will be based on the data in its entirety. Note that the
-data have been anonymized.
+share 18% of the data (1000/5517) for the project in this class (Link:
+<https://github.com/Data-Sci-2021/Structural-Change-L2-Sentence-Processing/tree/main/Data_processing/SPR>),
+but the presentation will be based on the data in its entirety. Note
+that the data have been anonymized.
