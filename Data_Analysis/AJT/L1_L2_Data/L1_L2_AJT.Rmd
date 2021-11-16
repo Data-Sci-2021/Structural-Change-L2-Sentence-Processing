@@ -151,7 +151,7 @@ ggplot(summary_AJTstats, aes(x=group, y=mean,fill=Complement_type)) +
                 position=position_dodge(.9))+ 
   xlab("group") + ylab("zrating") + theme(plot.title = element_text(hjust = 0.5))
 
-ggsave('~/Desktop/Experiments/Structural_change/AJT/L1_L2_Data/AJT_plot.png', width = 4.5, height = 3.21, units = "in", dpi = 300)
+
 ```
 
 ## Regression modeling 
