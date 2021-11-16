@@ -1,38 +1,23 @@
----
-title: "Structural change in L2 sentence processing - AJT"
-author: "Shaohua Fang"
-date: "27 Oct 2021"
-output:
-  html_document:
-    keep_md: yes
-    toc: yes
-    toc_depth: 2
-    toc_float: yes
-    self_contained: yes
-  pdf_document:
-    toc: yes
-    toc_depth: '2'
----
+Structural change in L2 sentence processing - AJT
+================
+Shaohua Fang
+27 Oct 2021
 
+## Load R packages
 
-
-
-# AJT data 
+# AJT data
 
 ## Load pre-processed L1 AJT data
 
-
-```r
+``` r
 if(file.exists("L1_AJT_Processed.csv")){
   AJT_L1_Processed <- read.csv("L1_AJT_Processed.csv", strip.white=TRUE, header=T, stringsAsFactors=F)
 } 
 ```
 
-
 ## Load pre-processed L2 AJT data
 
-
-```r
+``` r
 if(file.exists("L2_AJT_All.csv")){
   AJT_L2_Processed <- read.csv("L2_AJT_All.csv", strip.white=TRUE, header=T, stringsAsFactors=F)
 } 
@@ -40,46 +25,37 @@ if(file.exists("L2_AJT_All.csv")){
 
 ## Add language group
 
-
-```r
+``` r
 AJT_L1_Processed <- AJT_L1_Processed %>% 
    mutate(Language = "L1_English")
 AJT_L2_Processed <- AJT_L2_Processed %>% 
    mutate(Language= "L2_English")
 ```
 
+## Combined processed L1 and L2 AJT data
 
-## Combined processed L1 and L2 AJT data 
-
-
-```r
+``` r
 Combined_L1_L2_AJT <- bind_rows(AJT_L1_Processed,AJT_L2_Processed)
 length(unique(Combined_L1_L2_AJT$Subject)) # 172 L1(37)+L2(135) participants 
 ```
 
-```
-## [1] 172
-```
-
+    [1] 172
 
 ## Z-score transformation
 
-
-```r
+``` r
 # to account for the fact that people may perceive the scale differently, z-score transformation is applied by language group and individual subjects 
 Combined_L1_L2_AJT <- Combined_L1_L2_AJT %>% group_by(Subject,Language) %>% mutate(zrating=scale(rating))
 ```
 
 ## Filter Exp4
 
-
-```r
+``` r
 # Filter exp 4
 Exp4 <- Combined_L1_L2_AJT %>% filter(str_detect(condition,"NP."))
 ```
 
-
-```r
+``` r
 # Split the "condition" column 
 Part <- Exp4 %>% filter(str_detect(condition,"Exp4."))
 Part <- Part %>%
@@ -102,14 +78,11 @@ Updated_L1_L2_AJT$Language <- as.factor(Updated_L1_L2_AJT$Language)
 length(unique(Updated_L1_L2_AJT$Subject)) # 109 L1+L2, because some of the L2 participants didn't do the task - they instead did exp5.
 ```
 
-```
-## [1] 109
-```
+    [1] 109
 
-##
+## 
 
-
-```r
+``` r
 # Change column name 
 names(Updated_L1_L2_AJT)[names(Updated_L1_L2_AJT) == "percent_corr"] <- "LexTALE_score"
 names(Updated_L1_L2_AJT)[names(Updated_L1_L2_AJT) == "Language"] <- "group" 
@@ -117,14 +90,12 @@ names(Updated_L1_L2_AJT)[names(Updated_L1_L2_AJT) == "Language"] <- "group"
 
 ## Centering and standardize LexTALE_score
 
-
-```r
+``` r
 Updated_L1_L2_AJT <- Updated_L1_L2_AJT %>% mutate(cen=center(LexTALE_score)) %>% mutate(nor=scale(cen))
 Updated_L1_L2_AJT$nor <- as.numeric(Updated_L1_L2_AJT$nor)
 ```
 
-
-```r
+``` r
 # Data type conversion
 Updated_L1_L2_AJT$Subject <- as.factor(Updated_L1_L2_AJT$Subject)
 Updated_L1_L2_AJT$Complement_type <- as.factor(Updated_L1_L2_AJT$Complement_type)
@@ -136,11 +107,9 @@ Updated_L1_L2_AJT$cen <- as.numeric(Updated_L1_L2_AJT$cen)
 Updated_L1_L2_AJT$nor <- as.numeric(Updated_L1_L2_AJT$nor)
 ```
 
-
 ## Plot by condition and group
 
-
-```r
+``` r
 #Summarize by Subject, not observations. This gives you a mean proportion of errors *by Subject*.
 AJT_bysubject<- Updated_L1_L2_AJT %>% group_by(group,Complement_type,Subject) %>% summarise_at("zrating", list(mean=mean, sd=sd, min=min, max=max), na.rm=TRUE)
 
@@ -157,81 +126,74 @@ ggplot(summary_AJTstats, aes(x=group, y=mean,fill=Complement_type)) +
   xlab("group") + ylab("zrating") + theme(plot.title = element_text(hjust = 0.5))
 ```
 
-![](L1_L2_AJT_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
+![](L1_L2_AJT_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
 
-```r
+``` r
 ggsave('~/Desktop/Experiments/Structural_change/AJT/L1_L2_Data/AJT_plot.png', width = 4.5, height = 3.21, units = "in", dpi = 300)
 ```
 
-## Regression modeling 
+## Regression modeling
 
-
-```r
+``` r
 Model_AJT<-lmer(zrating~ Complement_type*group+(1|Itemnum)
                +(Complement_type|Subject), control=lmerControl(optimizer="bobyqa"), data=Updated_L1_L2_AJT, REML=F)
 
 summary(Model_AJT)
 ```
 
-```
-## Linear mixed model fit by maximum likelihood . t-tests use Satterthwaite's
-##   method [lmerModLmerTest]
-## Formula: 
-## zrating ~ Complement_type * group + (1 | Itemnum) + (Complement_type |  
-##     Subject)
-##    Data: Updated_L1_L2_AJT
-## Control: lmerControl(optimizer = "bobyqa")
-## 
-##      AIC      BIC   logLik deviance df.resid 
-##   2368.2   2413.2  -1175.1   2350.2     1081 
-## 
-## Scaled residuals: 
-##     Min      1Q  Median      3Q     Max 
-## -4.5095 -0.1515  0.2434  0.5524  2.9203 
-## 
-## Random effects:
-##  Groups   Name             Variance Std.Dev. Corr 
-##  Subject  (Intercept)      0.060830 0.24664       
-##           Complement_typeZ 0.008406 0.09168  -0.19
-##  Itemnum  (Intercept)      0.096467 0.31059       
-##  Residual                  0.423250 0.65058       
-## Number of obs: 1090, groups:  Subject, 109; Itemnum, 60
-## 
-## Fixed effects:
-##                                   Estimate Std. Error        df t value
-## (Intercept)                        0.44830    0.08461 120.41858   5.298
-## Complement_typeZ                  -0.10756    0.10607  96.88302  -1.014
-## groupL2_English                   -0.09273    0.07727 105.70112  -1.200
-## Complement_typeZ:groupL2_English   0.10700    0.08542 103.43587   1.253
-##                                  Pr(>|t|)    
-## (Intercept)                      5.35e-07 ***
-## Complement_typeZ                    0.313    
-## groupL2_English                     0.233    
-## Complement_typeZ:groupL2_English    0.213    
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-## 
-## Correlation of Fixed Effects:
-##             (Intr) Cmpl_Z grL2_E
-## Cmplmnt_tyZ -0.627              
-## grpL2_Engls -0.603  0.295       
-## Cmpl_Z:L2_E  0.334 -0.532 -0.554
-```
+    Linear mixed model fit by maximum likelihood . t-tests use Satterthwaite's
+      method [lmerModLmerTest]
+    Formula: 
+    zrating ~ Complement_type * group + (1 | Itemnum) + (Complement_type |  
+        Subject)
+       Data: Updated_L1_L2_AJT
+    Control: lmerControl(optimizer = "bobyqa")
 
+         AIC      BIC   logLik deviance df.resid 
+      2368.2   2413.2  -1175.1   2350.2     1081 
 
-## Filter a sample of data from AJT for the project of 'Data Science' class
+    Scaled residuals: 
+        Min      1Q  Median      3Q     Max 
+    -4.5095 -0.1515  0.2434  0.5524  2.9203 
 
+    Random effects:
+     Groups   Name             Variance Std.Dev. Corr 
+     Subject  (Intercept)      0.060830 0.24664       
+              Complement_typeZ 0.008406 0.09168  -0.19
+     Itemnum  (Intercept)      0.096467 0.31059       
+     Residual                  0.423250 0.65058       
+    Number of obs: 1090, groups:  Subject, 109; Itemnum, 60
 
-```r
+    Fixed effects:
+                                      Estimate Std. Error        df t value
+    (Intercept)                        0.44830    0.08461 120.41858   5.298
+    Complement_typeZ                  -0.10756    0.10607  96.88302  -1.014
+    groupL2_English                   -0.09273    0.07727 105.70112  -1.200
+    Complement_typeZ:groupL2_English   0.10700    0.08542 103.43587   1.253
+                                     Pr(>|t|)    
+    (Intercept)                      5.35e-07 ***
+    Complement_typeZ                    0.313    
+    groupL2_English                     0.233    
+    Complement_typeZ:groupL2_English    0.213    
+    ---
+    Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+    Correlation of Fixed Effects:
+                (Intr) Cmpl_Z grL2_E
+    Cmplmnt_tyZ -0.627              
+    grpL2_Engls -0.603  0.295       
+    Cmpl_Z:L2_E  0.334 -0.532 -0.554
+
+## Filter a sample of data from AJT for the project of ‘Data Science’ class
+
+``` r
 # Filter the first 1000 rows of the data
 nrow(Updated_L1_L2_AJT) # 4690
 ```
 
-```
-## [1] 4690
-```
+    [1] 4690
 
-```r
+``` r
 AJT_Sample <- Updated_L1_L2_AJT[1:1000,]
 
 # Anoymize the subjects 
@@ -242,23 +204,9 @@ AJT_Sample$Subject <- as.factor(AJT_Sample$Subject)
 1000/4690
 ```
 
-```
-## [1] 0.2132196
-```
+    [1] 0.2132196
 
-```r
+``` r
 # Read out this sample in csv. 
 write.csv(AJT_Sample,"AJT_Sample_for_DS_class.csv", row.names = FALSE)
 ```
-
-
-
-
-
-
-
-
-
-
-
-
