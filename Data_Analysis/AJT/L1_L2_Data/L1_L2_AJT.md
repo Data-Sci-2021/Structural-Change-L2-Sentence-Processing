@@ -128,10 +128,6 @@ ggplot(summary_AJTstats, aes(x=group, y=mean,fill=Complement_type)) +
 
 ![](L1_L2_AJT_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
 
-``` r
-ggsave('~/Desktop/Experiments/Structural_change/AJT/L1_L2_Data/AJT_plot.png', width = 4.5, height = 3.21, units = "in", dpi = 300)
-```
-
 ## Regression modeling
 
 ``` r
