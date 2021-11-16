@@ -1,0 +1,573 @@
+---
+title: "Structural change in L2 sentence processing - SPR"
+author: "Shaohua Fang"
+date: "27 Oct 2021"
+output:
+    github_document: 
+    toc: TRUE
+---
+
+```{r,echo=F, message=F}
+# load R packages
+library(tidyverse)
+library(Rmisc)      # Rmisc had to be loaded after tidyverse for center() function to work
+library(lmerTest)
+library(emmeans)
+library(r2mlm)
+library(sjPlot)
+library(carData)
+library(effects)
+library(sjstats)
+library(sjmisc)
+library(misty)
+library(reshape2)
+library(ggplot2)
+library(lme4)
+# library(ggpubr) # for correlation plot
+library(MuMIn) # for the amount of variance explained
+library(brms)
+```
+
+# SPR data - L1
+
+## Read in pre-processed L1 SPR data
+
+```{r}
+if(file.exists("SPR_L1.csv")){
+  SPR_L1 <- read.csv("SPR_L1.csv", strip.white=TRUE, header=T, stringsAsFactors=F)
+} 
+```
+
+```{r}
+# how many participants 
+length(unique(SPR_L1$name)) # 85 participants
+```
+
+```{r}
+# rename name column to Subject column
+names(SPR_L1)[names(SPR_L1) == "name"] <- "Subject"
+```
+
+## Extract LexTALE score from AJT
+
+```{r}
+# Read in AJT data
+if(file.exists("AJT_L1.csv")){
+  for_LexTALE <- read.csv("AJT_L1.csv", strip.white=TRUE, header=T, stringsAsFactors=F)
+}
+```
+
+## Join LexTALE score from AJT_L1 to SPR data 
+
+```{r}
+for_LexTALE<- for_LexTALE %>% select(Subject,percent_corr)  # select columns that aim for joining
+for_LexTALE <- for_LexTALE %>% distinct(Subject, .keep_all = TRUE)  # remove duplicates by name column
+joined_data <- left_join(SPR_L1,for_LexTALE, by="Subject")
+```
+
+## Remove participants whose LexTALE score is below 80 - quality screening
+
+```{r}
+joined_data <- joined_data %>% filter(percent_corr>=80)
+```
+
+## Remove participants whose L1 is non-English
+
+```{r}
+joined_data <- joined_data %>% filter(Language1=="true_english")
+length(unique(joined_data$Subject)) # 47 participants left
+```
+
+## Delete rows we are not interested in
+
+```{r}
+joined_data <- droplevels(subset(joined_data, Condition!="consent" & Condition!="background" & Condition!="intro" & Condition!="practice"& Condition!="debrief"))
+```
+
+
+## Deal with comprehension questions - fillers included 
+
+```{r}
+# Exp1 excluded as its CQs are experimentally manipulated 
+joined_data <- joined_data %>% filter(!str_detect(Condition,"Monkey-Exp1")) 
+```
+
+## Filter comprehension questions
+
+```{r}
+CQ <- joined_data %>% filter(Controller=='QuestionAlt')
+colnames(CQ)[colnames(CQ) == 'word'] <- 'response' # rename word with response
+colnames(CQ)[colnames(CQ) == 'RT'] <- 'accuracy' # rename RT with accuracy
+CQ$accuracy <- as.numeric(as.character(CQ$accuracy))
+```
+
+## Calculate overall accuracy 
+
+```{r}
+# Function to calculate binomial standard error - from Serine et al.(2019)
+se.bin <- function(x){
+  n.success = sum(na.omit(x)) #x is coded as 1 (success) or 0 (failure), so number of successes is the sum of x = 1 
+  n         = length(na.omit(x))
+  p         = n.success / n
+  return(sqrt(p*(1-p)/n))
+}
+```
+
+```{r}
+CQ %>% dplyr::summarize(
+  fillerAccuracy = round(100*mean(accuracy, na.rm = TRUE), digits=1), # note that dplyr package and tidyverse package are not compatible for summarize() function
+  fillerSE = round(100*se.bin(accuracy), digits=1))  # overall accuracy is 93.7%, SE=0.5%
+```
+## Compute mean accuracy for each participant for the experimental items 
+
+```{r}
+by_subject_accuracy_L1 <- summarySE(CQ, measurevar="accuracy", groupvars=c("Subject"))
+```
+
+## Join CQ and SPR_L1 data 
+
+```{r}
+CQ <- by_subject_accuracy_L1 %>% select(Subject,accuracy)
+CQ <- CQ %>% distinct(Subject, .keep_all = TRUE)  # remove duplicates by name column
+joined_data <- left_join(joined_data,CQ, by="Subject")
+```
+
+## Exclude participants with accuracy less than 0.8
+
+```{r}
+low <- joined_data %>% filter(accuracy<0.8)
+length(unique(low$Subject)) # One L1 subjetc whose accuracy lower than 0.8
+```
+
+## Remove the one subjetc whose accuracy lower than 0.8
+
+```{r}
+accurate <- subset(joined_data, !Subject %in% low$Subject) 
+length(unique(accurate$Subject)) # 46 subjects left for further studies
+```
+
+## Filter data from the remaining data from L1 participants
+
+```{r}
+CQ_new <- accurate %>% select("Sbjtime","accuracy")
+CQ_new$Sbjtime <- as.factor(CQ_new$Sbjtime)
+```
+
+## Overall accuracy for the remaining data
+
+```{r}
+CQ_new %>% dplyr::summarize(
+  fillerAccuracy = round(100*mean(accuracy, na.rm = TRUE), digits=1), # note that dplyr package and tidyverse package are not compatible for summarize() function
+  fillerSE = round(100*se.bin(accuracy), digits=1)) # the overall accuracy now is 94.3% and SE=0.2%
+```
+## Filter Exp4 for further analysis 
+
+```{r}
+Exp4 <- accurate %>% filter(str_detect(Condition,"Monkey-Exp4"))
+```
+
+## Data points with the RTs  beyond 2.5 standard deviations from the mean dropped
+
+```{r}
+Exp4_trimmed <- Exp4 %>% 
+  group_by(Subject) %>% 
+  filter(abs(RT - mean(RT)) < (sd(RT) * 2.5)) 
+
+round(100*((dim(Exp4)[1]-dim(Exp4_trimmed)[1])/dim(Exp4)[1]), digits=1) # (2.6 % of the data points affected)
+```
+
+## Get rid of values equal to or below 0, since it's mathmatically impossible to log them
+
+```{r}
+Exp4_trimmed  <-  Exp4_trimmed %>% filter(RT>0)
+Exp4_trimmed <- droplevels(subset(Exp4_trimmed, Controller!="QuestionAlt"))
+```
+
+## Natural lg transform RTs to approach normal distribution
+
+```{r}
+Exp4_trimmed <- Exp4_trimmed %>% mutate(log_RT=log(RT))
+```
+
+## Residualization (to adjust for variability in region length  and individual reading speed) on logged data 
+
+```{r}
+Exp4_trimmed$word_length <- nchar(as.character(Exp4_trimmed$word))
+Exp4_trimmed$word_length<- as.numeric(Exp4_trimmed$word_length)
+mixed_model <- lmer(log_RT ~ scale(word_length) + (1+scale(word_length)|Subject), Exp4_trimmed)
+Exp4_trimmed$corrected_log_rt <- residuals(mixed_model)
+```
+
+## Split the "Condition" column  based on hyphen 
+
+```{r}
+Exp4_trimmed <- Exp4_trimmed %>% separate(Condition, c("X", "Y", "Complement_type","Ambiguity", "Q", "P"), "-")
+```
+
+## Data type conversion
+
+```{r}
+Exp4_trimmed$Complement_type <- as.factor(Exp4_trimmed$Complement_type)
+Exp4_trimmed$Ambiguity <- as.factor(Exp4_trimmed$Ambiguity)
+```
+
+# SPR data - L2
+
+## Read in pre-processed L2 SPR data
+
+```{r}
+if(file.exists("SPR_L2.csv")){
+  SPR_L2 <- read.csv("SPR_L2.csv", strip.white=TRUE, header=T, stringsAsFactors=F)
+} 
+```
+
+```{r}
+length(unique(SPR_L2$name))
+# rename name column to Subject column
+names(SPR_L2)[names(SPR_L2) == "name"] <- "Subject"
+```
+
+## Extract LexTALE score from L2 AJTs
+
+```{r}
+if(file.exists("AJT_L2.csv")){
+  for_LexTALE_L2 <- read.csv("AJT_L2.csv", strip.white=TRUE, header=T, stringsAsFactors=F)
+}
+```
+
+## Add LexTale info to SPR L2 data 
+
+```{r}
+for_LexTALE_L2<- for_LexTALE_L2 %>% select(Subject,percent_corr)  # select columns that aim for joining
+for_LexTALE_L2 <- for_LexTALE_L2 %>% distinct(Subject, .keep_all = TRUE)  # remove duplicates by name column
+combined_data <- left_join(SPR_L2,for_LexTALE_L2, by="Subject")
+length(unique(combined_data$Subject)) # 135 participants
+```
+
+## Centering and standardize percent_corr
+
+```{r}
+combined_data <- combined_data %>% mutate(cen=center(percent_corr)) %>% mutate(nor=scale(cen))
+combined_data$nor <- as.numeric(combined_data$nor)
+```
+
+## Delete rows we are not interested in 
+
+```{r}
+combined_data <- droplevels(subset(combined_data, Condition!="consent" & Condition!="background" & Condition!="intro" & Condition!="practice"& Condition!="debrief"))
+```
+
+## Deal with comprehension question (with fillers included)
+
+```{r}
+combined_data <- combined_data %>% filter(!str_detect(Condition,"Monkey-Exp1")) # Exp1 excluded since its CQs are  experimenatlly manipulated. 
+```
+
+## Filter comprehension question
+
+```{r}
+CQ1 <- combined_data %>% filter(Controller=='QuestionAlt')
+colnames(CQ1)[colnames(CQ1) == 'word'] <- 'response' # rename word with response
+colnames(CQ1)[colnames(CQ1) == 'RT'] <- 'accuracy' # rename RT with accuracy
+CQ1$accuracy <- as.numeric(as.character(CQ1$accuracy))
+```
+
+## Calculating overall accuracy 
+
+```{r}
+CQ1 %>% dplyr::summarize(
+  fillerAccuracy = round(100*mean(accuracy, na.rm = TRUE), digits=1),
+  fillerSE = round(100*se.bin(accuracy), digits=1))  # the overall accuracy is 88.8 %, SE=0.4 %
+```
+
+## Compute mean accuracy for each participant for the experimental items 
+
+```{r}
+by_subject_accuracy_L2 <- summarySE(CQ1, measurevar="accuracy", groupvars=c("Subject"))
+```
+
+## Join CQ and SPR_L2 data sets 
+
+```{r}
+CQ1 <- by_subject_accuracy_L2 %>% select(Subject,accuracy)
+CQ1 <- CQ1 %>% distinct(Subject, .keep_all = TRUE)  # remove duplicates by name column
+combined_data <- left_join(combined_data,CQ1, by="Subject")
+```
+
+## Exclude participants with accuracy less than 0.8
+
+```{r}
+low1 <- combined_data %>% filter(accuracy<0.8)
+length(unique(low1$Subject)) #13 people whose accuracy lower than 0.8
+accurate1 <- subset(combined_data, !Subject %in% low1 $Subject) 
+length(unique(accurate1$Subject)) # 122 people with accuracy larger than 0.8 left for further studies 
+```
+
+
+## filter Subject and Accuracy info from L2
+
+```{r}
+accurate1 <- subset(combined_data, !Subject %in% low1 $Subject) 
+length(unique(accurate1$Subject)) # 122 people with accuracy larger than 0.8 left for further studies 
+CQ_new1 <- accurate1 %>% select("Sbjtime","accuracy")
+CQ_new1$Sbjtime <- as.factor(CQ_new1$Sbjtime)
+```
+
+## Accuracy for the remaining data from L2 participants
+
+```{r}
+CQ_new1 %>% dplyr::summarize(
+  fillerAccuracy = round(100*mean(accuracy, na.rm = TRUE), digits=1), # note that dplyr package and tidyverse package are not compatible for summarize() function
+  fillerSE = round(100*se.bin(accuracy), digits=1))
+```
+## Whether accuracies are significantly different between L1 and L2 participants
+
+```{r}
+## Add columns for Language grouo info
+CQ_new$Language <- "L1"
+CQ_new1$Language <- "L2"
+combined_CQ_new <- rbind(CQ_new,CQ_new1)
+combined_CQ_new$Language <- as.factor(combined_CQ_new$Language)
+
+combined_CQ_new <- combined_CQ_new %>% distinct(Sbjtime,.keep_all = T) ## Remove duplicates by Sbjtime column 
+res.aov <- aov(accuracy ~ Language, data = combined_CQ_new)
+summary(res.aov) # one-way ANOVA testing the difference between L1 and L2 accuracy
+```
+
+## Filter Exp4 for further analysis
+
+```{r}
+accurate1 <- accurate1 %>% filter(str_detect(Condition,"Monkey-Exp4"))
+```
+
+```{r}
+# data points with RTs beyond 2.5 SDs of the mean were removed
+accurate_trimmed1 <- accurate1 %>% 
+  group_by(Subject) %>% 
+  filter(abs(RT - mean(RT)) < (sd(RT) * 2.5)) 
+round(100*((dim(accurate1)[1]-dim(accurate_trimmed1)[1])/dim(accurate1)[1]), digits=1) # (2.5% of the data affected)
+
+# RT equal to 0 or lower than 0 is mathmatically impossible 
+accurate_trimmed1  <-  accurate_trimmed1 %>% filter(RT>0)
+accurate_trimmed1 <- droplevels(subset(accurate_trimmed1, Controller!="QuestionAlt"))
+```
+
+## Log transform RT 
+
+```{r}
+accurate_trimmed1 <- accurate_trimmed1 %>% mutate(log_RT=log(RT))
+```
+
+## # Residualization 
+```{r}
+accurate_trimmed1$word_length <- nchar(as.character(accurate_trimmed1$word))
+accurate_trimmed1$word_length<- as.numeric(accurate_trimmed1$word_length)
+mixed_model <- lmer(log_RT ~ scale(word_length) + (1+scale(word_length)|Subject), accurate_trimmed1)
+accurate_trimmed1$corrected_log_rt <- residuals(mixed_model)
+```
+
+## Split the "condition" column based on hyphen
+```{r}
+accurate_trimmed1 <- accurate_trimmed1 %>% separate(Condition, c("X", "Y", "Complement_type","Ambiguity", "Q", "P"), "-")
+accurate_trimmed1$Complement_type <- as.factor(accurate_trimmed1$Complement_type)
+accurate_trimmed1$Ambiguity <- as.factor(accurate_trimmed1$Ambiguity)
+```
+
+```{r}
+## Add the language group column
+Exp4_trimmed$Language <- 'L1_English'
+accurate_trimmed1$Language <- 'L2_English'
+```
+
+```{r}
+## Combine L1 and L2 spr
+L1_L2_SPR_bind <- bind_rows(Exp4_trimmed,accurate_trimmed1)
+L1_L2_SPR_bind$Language <- as.factor(L1_L2_SPR_bind$Language)
+L1_L2_SPR_bind$region <- as.factor(L1_L2_SPR_bind$region)
+```
+
+## Line plot for L1
+```{r}
+for_L1_plot <- L1_L2_SPR_bind %>% filter(Language=="L1_English")
+
+Summary_L1 <- for_L1_plot %>% 
+  group_by(Complement_type, Ambiguity,region) %>% 
+  summarise_at("corrected_log_rt", 
+               list(mean = mean, sd = sd, min = min, max = max, length=length))
+
+Summary_L1$se <- Summary_L1$sd / sqrt(Summary_L1$length) 
+
+ggplot(Summary_L1, aes(x=region, y=mean, group=Complement_type, color=Complement_type)) + 
+  geom_line(aes(linetype=Complement_type))+
+  geom_point(aes(shape=Complement_type))+ geom_errorbar(
+    aes(ymin = mean - se, ymax = mean + se),
+    width = .2,
+    size = 0.25) +
+  scale_linetype_manual(values=c("twodash", "dotted", "solid"))+facet_wrap(~Language)+theme(plot.title = element_text(hjust = 0.5))+scale_y_continuous(name="ResidualLog RT(ms)")+
+  scale_x_discrete(labels=c("1" = "R1", "2" = "R2",
+                            "3" = "R3","4" = "R4"))+
+  theme(axis.text.x = element_text(face = "bold", size=7,angle=55,hjust = 1))+facet_grid(~Ambiguity)
+
+ggsave('~/Desktop/Experiments/Structural_change/SPR_L1_plot.png', width = 4.5, height = 3.21, units = "in", dpi = 300)
+```
+
+## Line plot for L2
+```{r}
+for_L2_plot <- L1_L2_SPR_bind %>% filter(Language=="L2_English")
+
+Summary_L2 <- for_L2_plot %>% 
+  group_by(Complement_type, Ambiguity,region) %>% 
+  summarise_at("corrected_log_rt", 
+               list(mean = mean, sd = sd, min = min, max = max, length=length))
+
+Summary_L2$se <- Summary_L2$sd / sqrt(Summary_L2$length) 
+
+ggplot(Summary_L2, aes(x=region, y=mean, group=Complement_type, color=Complement_type)) + 
+  geom_line(aes(linetype=Complement_type))+
+  geom_point(aes(shape=Complement_type))+ geom_errorbar(
+    aes(ymin = mean - se, ymax = mean + se),
+    width = .2,
+    size = 0.25) +
+  scale_linetype_manual(values=c("twodash", "dotted", "solid"))+facet_wrap(~Language)+theme(plot.title = element_text(hjust = 0.5))+scale_y_continuous(name="ResidualLog RT(ms)")+
+  scale_x_discrete(labels=c("1" = "R1", "2" = "R2",
+                            "3" = "R3","4" = "R4"))+
+  theme(axis.text.x = element_text(face = "bold", size=7,angle=55,hjust = 1))+facet_wrap(~Ambiguity)
+
+ggsave('~/Desktop/Experiments/Structural_change/SPR_L2_plot.png', width = 4.5, height = 3.21, units = "in", dpi = 300)
+```
+
+
+## Bar plot for disambiguating region (3)
+```{r}
+# filter region 3 for both groups 
+R3 <- L1_L2_SPR_bind %>% filter(region=="3")
+
+CK<- R3 %>% group_by(Ambiguity,Complement_type,region,Language,Subject) %>% summarise_at("corrected_log_rt", list(mean=mean, sd=sd, min=min, max=max), na.rm=TRUE)
+
+CK_St <- summarySE(CK, measurevar="mean", groupvars=c("Ambiguity","Complement_type","Language"), na.rm=T)
+
+ggplot(CK_St, aes(x=Complement_type, y=mean,fill=Ambiguity)) + 
+  geom_bar(position=position_dodge(), stat="identity") +
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se),
+                width=.2,                    # Width of the error bars
+                position=position_dodge(.9))+ 
+  xlab("region") + ylab("ResidualLog RT (ms)") + theme(plot.title = element_text(hjust = 0.5))+facet_wrap(~Language)
+```
+
+## Bar plot for CQ accuracy by condition - not very meaningful as CQs have been trimmed already.  
+
+```{r}
+# Error bars represent standard error of the mean over participants
+# Compute the mean accuracy by condition and group 
+mean_acc_bysubject <- L1_L2_SPR_bind %>% group_by(Language,Ambiguity,Complement_type,Subject) %>% summarise_at("accuracy", list(mean = mean, sd = sd, min = min, max = max))
+
+# Calculate SE of means over subjects
+Summary_mean <- summarySE(mean_acc_bysubject, measurevar="mean", groupvars=c("Ambiguity","Complement_type","Language"))
+
+# Error bars represent standard error of the mean over observations
+ggplot(Summary_mean, aes(x=Ambiguity, y=mean, fill=Complement_type)) + 
+  geom_bar(position=position_dodge(), stat="identity") +
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se),
+                width=.2,                    # Width of the error bars
+                position=position_dodge(.9))+facet_wrap(~Language) + ggtitle("CQ_Accuracy by Condition") + 
+  xlab("Question Voice") + ylab("CQ_Accuracy") + theme(plot.title = element_text(hjust = 0.5))  
+```
+
+```{r}
+##### This is how to anonymize participants
+anoymize <- L1_L2_SPR_bind[1:1000,]
+
+anoymize$Subject <- as.factor(anoymize$Subject)
+
+#anoymize <- anoymize %>% 
+  #count(Subject, sort = TRUE) %>% 
+  #pull(Subject) %>% 
+  #as.numeric(Subject)
+
+anoymize$Subject <- as.numeric(anoymize$Subject)
+view(anoymize)
+```
+
+
+# Regression models for region 3
+
+```{r}
+# sum coding to facilitate model interpretation  
+contrasts(R3$Ambiguity) <- c(-0.5,0.5)
+contrasts(R3$Complement_type) <- c(-0.5,0.5)
+
+# Data type conversion
+R3$Subject <- as.factor(R3$Subject)
+R3$Item <- as.factor(R3$Item)
+```
+
+## Frequentist linear mixed-effects models
+```{r}
+Model_r3<-lmer(corrected_log_rt~ Ambiguity*Complement_type*Language+(Language|Item)
+               +(Ambiguity*Complement_type|Subject), control=lmerControl(optimizer="bobyqa"), data=R3, REML=F)
+
+summary(Model_r3)
+
+## frequentist regression models using lme4 ran into convergence problems when a maximal random-effects structure was adopted - we instead adopted Bayesian linear mixed models advocated by Vasishth et al.(2018). 
+
+Model_r3_baye <- brm(corrected_log_rt~Ambiguity*Complement_type*Language+(Language|Item)
+               +(Ambiguity*Complement_type|Subject),
+               data=R3,
+               warmup=1000,
+               iter = 3000,
+               chains = 2,
+               inits="random",
+               cores = 2)
+summary(Model_r3_baye)
+
+
+#stanplot (Model_r3_baye, type="hist")
+pp_check(Model_r3_baye, nsamples = 100) # the observed data are plotted alongside the predicted data generated by the model. The predicted and observed data have similar distributions, and therefore the model has a reasonable fit.
+
+```
+
+
+## Filter a sample of data from SPR for the project for 'Data Science' class
+```{r}
+# Filter the first 1000 rows of the data
+nrow(L1_L2_SPR_bind)
+Sample <- L1_L2_SPR_bind[1:1000,]
+
+# Anoymize the subjects 
+
+Sample$Subject <- as.factor(Sample$Subject)
+Sample$Subject <- as.numeric(Sample$Subject)
+Sample$Subject <- as.factor(Sample$Subject)
+
+1000/5517
+
+# Read out this sample in csv. 
+write.csv(Sample,"SPR_Sample_for_DS_class.csv", row.names = FALSE)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
