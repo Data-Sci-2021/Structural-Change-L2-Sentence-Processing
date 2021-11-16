@@ -3,20 +3,15 @@ title: "Structural change in L2 sentence processing - AJT"
 author: "Shaohua Fang"
 date: "27 Oct 2021"
 output:
-  html_document:
-    keep_md: yes
-    toc: yes
-    toc_depth: 2
-    toc_float: yes
-    self_contained: yes
-  pdf_document:
-    toc: yes
-    toc_depth: '2'
+    github_document: 
+    toc: TRUE
 ---
 
+## Load R packages
 
-```{r,echo=F, message=F}
-## R Packages loaded
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment=NA)
+
 library(tidyverse)
 library(Rmisc)      # Rmisc had to be loaded after tidyverse for center() function to work
 library(lmerTest)
