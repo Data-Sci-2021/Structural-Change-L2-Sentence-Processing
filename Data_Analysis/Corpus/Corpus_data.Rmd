@@ -1,0 +1,142 @@
+---
+title: "Corpus data"
+author: "Shaohua Fang"
+date: "17 November 2021"
+output:
+    github_document: 
+    toc: TRUE
+---
+
+Concordancing with R
+
+
+```{r}
+# set options
+options(stringsAsFactors = F)          # no automatic data transformation
+options("scipen" = 100, "digits" = 12) # suppress math annotation
+# activate packages
+library(quanteda)
+library(gutenbergr)
+library(tidyverse)
+library(flextable)
+library(readtext)
+library(quanteda)
+```
+
+```{r}
+# set options
+options(stringsAsFactors = F)         # no automatic data transformation
+options("scipen" = 100, "digits" = 4) # suppress math annotation
+# load packages
+library(igraph)
+library(tm)
+library(NLP)
+library(openNLP)
+library(openNLPdata)
+library(coreNLP)
+library(koRpus)
+library(koRpus.lang.en)
+library(phrasemachine)
+library(flextable)
+# load function for pos-tagging objects in R
+source("https://slcladal.github.io/rscripts/POStagObject.r") 
+# syntax tree drawing function
+source("https://slcladal.github.io/rscripts/parsetgraph.R")
+```
+
+```{r}
+# download java files for CoreNLP
+#downloadCoreNLP()
+```
+
+## reading in COCA in txt.
+
+```{r}
+my_data <- readLines("2012_acad.txt")
+
+# clean data
+my_data <- my_data %>%
+ str_squish() 
+```
+
+```{r}
+POStag <- function(object){
+  require("stringr")
+  require("NLP")
+  require("openNLP")
+  require("openNLPdata")
+  # define paths to corpus files
+  corpus.tmp <- object
+  # define sentence annotator
+  sent_token_annotator <- openNLP::Maxent_Sent_Token_Annotator()
+  # define word annotator
+  word_token_annotator <- openNLP::Maxent_Word_Token_Annotator()
+  # define pos annotator
+  pos_tag_annotator <- openNLP::Maxent_POS_Tag_Annotator(language = "en", probs = FALSE, 
+    # WARNING: YOU NEED TO INCLUDE YOUR OWN PATH HERE!                                            
+    model = "/Library/Frameworks/R.framework/Versions/4.1/Resources/library/openNLPdata/models/en-pos-maxent.bin")
+  # convert all file content to strings
+  Corpus <- lapply(corpus.tmp, function(x){
+    x <- as.String(x)  }  )
+  # loop over file contents
+  lapply(Corpus, function(x){
+    y1 <- NLP::annotate(x, list(sent_token_annotator, word_token_annotator))
+    y2<- NLP::annotate(x, pos_tag_annotator, y1)
+    y2w <- subset(y2, type == "word")
+    tags <- sapply(y2w$features, '[[', "POS")
+    r1 <- sprintf("%s/%s", x[y2w], tags)
+    r2 <- paste(r1, collapse = " ")
+    return(r2)  }  )
+  }
+```
+
+
+```{r}
+# pos tagging data
+textpos <- POStag(object = my_data)
+head(textpos)
+class(textpos)
+```
+
+# find.package("openNLPmodels.en")
+
+```{r}
+## it is not working unless textpos is converted  from list 
+#transcripts <- sapply(textpos, function(x){
+#  x <- readLines(x)
+})
+```
+
+```{r basekwic2, message=F, warning=F}
+#kwic_natural <- kwic(x = textpos, pattern = "accepted")
+#head(kwic_natural)
+```
+
+```
+kwic_natural_longer <- kwic(x = my_data, pattern = "selection", window = 10)
+head(kwic_natural_longer)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
