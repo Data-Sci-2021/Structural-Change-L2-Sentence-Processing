@@ -9,6 +9,7 @@ Shaohua Fang
     -   [Significance of this study
         (added)](#significance-of-this-study-added)
     -   [Overview](#overview-1)
+-   [3nd progress report](#3nd-progress-report)
 
 # 1st progress report
 
@@ -117,3 +118,10 @@ and SPR (Link:
 <https://github.com/Data-Sci-2021/Structural-Change-L2-Sentence-Processing/tree/main/Data_Analysis/SPR>).
 
 I am still working on the wrangling and analysis of the corpus data.
+
+# 3nd progress report
+
+The most recent progress I have made is to start analyzing corpus data.
+The analysis is based on the corpus data from COCA.This is primarily to
+establish the statistical distribution for the kind of complement the
+verbs (which are manipulated for the main experiments) tend to take.
