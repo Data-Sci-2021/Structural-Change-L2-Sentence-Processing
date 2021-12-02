@@ -90,16 +90,14 @@ POStag <- function(object){
   }
 ```
 
-
+## pos tagging data
 ```{r}
-# pos tagging data
 textpos <- POStag(object = my_data)
 head(textpos)
 class(textpos)
 ```
 
-# find.package("openNLPmodels.en")
-
+## convert textpos into a single character vector that 'kwic' can be applied
 ```{r}
 ## it is not working unless textpos is converted into corpus 
 transcripts_collapsed <- sapply(textpos, function(x){
