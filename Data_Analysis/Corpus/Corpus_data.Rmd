@@ -101,15 +101,18 @@ class(textpos)
 # find.package("openNLPmodels.en")
 
 ```{r}
-## it is not working unless textpos is converted  from list 
-#transcripts <- sapply(textpos, function(x){
-#  x <- readLines(x)
+## it is not working unless textpos is converted into corpus 
+transcripts_collapsed <- sapply(textpos, function(x){
+  x <- readLines(x)
+  x <- paste0(x, collapse = " ")
+  x <- str_squish(x)
 })
+
 ```
 
 ```{r basekwic2, message=F, warning=F}
-#kwic_natural <- kwic(x = textpos, pattern = "accepted")
-#head(kwic_natural)
+kwic_natural <- kwic(x = textpos, pattern = "accepted")
+head(kwic_natural)
 ```
 
 ```
