@@ -48,16 +48,14 @@ Pritchett, B. L. (1992). *Grammatical competence and parsing performance*. Unive
 
 Sturt, P., Pickering, M. J., & Crocker, M. W. (1999). Structural change and reanalysis difficulty in language comprehension. *Journal of Memory and Language, 40*(1), 136-150.
 
-
 ## Overview 
 I have done the analysis for my experiments for AJT (Link: https://github.com/Data-Sci-2021/Structural-Change-L2-Sentence-Processing/tree/main/Data_Analysis/AJT/L1_L2_Data) and SPR (Link: https://github.com/Data-Sci-2021/Structural-Change-L2-Sentence-Processing/tree/main/Data_Analysis/SPR). 
 
 I am still working on the wrangling and analysis of the corpus data. 
  
+# 3nd progress report
 
-
-
-
+The most recent progress I have made is to start analyzing corpus data. The analysis is based on the corpus data from COCA.This is primarily to establish the statistical distribution for the kind of complement the verbs (which are  manipulated for the main experiments) tend to take. 
 
 
 
