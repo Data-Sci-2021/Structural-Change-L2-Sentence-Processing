@@ -22,7 +22,6 @@ library(flextable)
 library(readtext)
 library(quanteda)
 ```
-
 ```{r}
 # set options
 options(stringsAsFactors = F)         # no automatic data transformation
@@ -97,24 +96,32 @@ head(textpos)
 class(textpos)
 ```
 
+## Convert textpos in list into character
+```{r}
+textpos_new <- flatten_chr(textpos)
+```
+
 ## convert textpos into a single character vector that 'kwic' can be applied
 ```{r}
-## it is not working unless textpos is converted into corpus 
-transcripts_collapsed <- sapply(textpos, function(x){
-  x <- readLines(x)
+tagged <- sapply(textpos_new, function(x){
   x <- paste0(x, collapse = " ")
   x <- str_squish(x)
 })
-
 ```
+
+## extract the designated concordance
+```{r basekwic2, message=F, warning=F}
+kwic_natural <- kwic(x = tagged, pattern = "accepted", window = 10) 
+head(kwic_natural)
+nrow(kwic_natural)
+
+head(tagged)
+class(tagged)
+```
+
 
 ```{r basekwic2, message=F, warning=F}
-kwic_natural <- kwic(x = textpos, pattern = "accepted")
-head(kwic_natural)
-```
-
-```
-kwic_natural_longer <- kwic(x = my_data, pattern = "selection", window = 10)
+kwic_natural_longer <- kwic(x = my_data, pattern = "accepted", window = 10)
 head(kwic_natural_longer)
 ```
 
