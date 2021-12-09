@@ -39,7 +39,7 @@ Combined_L1_L2_AJT <- bind_rows(AJT_L1_Processed,AJT_L2_Processed)
 length(unique(Combined_L1_L2_AJT$Subject)) # 172 L1(37)+L2(135) participants 
 ```
 
-    [1] 172
+    ## [1] 172
 
 ## Z-score transformation
 
@@ -78,7 +78,7 @@ Updated_L1_L2_AJT$Language <- as.factor(Updated_L1_L2_AJT$Language)
 length(unique(Updated_L1_L2_AJT$Subject)) # 109 L1+L2, because some of the L2 participants didn't do the task - they instead did exp5.
 ```
 
-    [1] 109
+    ## [1] 109
 
 ## 
 
@@ -107,6 +107,12 @@ Updated_L1_L2_AJT$cen <- as.numeric(Updated_L1_L2_AJT$cen)
 Updated_L1_L2_AJT$nor <- as.numeric(Updated_L1_L2_AJT$nor)
 ```
 
+``` r
+# Rename factor level 
+levels(Updated_L1_L2_AJT$Complement_type)[levels(Updated_L1_L2_AJT$Complement_type)=="S"] <- "NP/S"
+levels(Updated_L1_L2_AJT$Complement_type)[levels(Updated_L1_L2_AJT$Complement_type)=="Z"] <- "NP/Z"
+```
+
 ## Plot by condition and group
 
 ``` r
@@ -126,59 +132,57 @@ ggplot(summary_AJTstats, aes(x=group, y=mean,fill=Complement_type)) +
   xlab("group") + ylab("zrating") + theme(plot.title = element_text(hjust = 0.5))
 ```
 
-![](L1_L2_AJT_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+![](L1_L2_AJT_files/figure-gfm/barplot_forAJT-1.png)<!-- -->
 
 ## Regression modeling
 
 ``` r
+contrasts(Updated_L1_L2_AJT$Complement_type) <- c(-0.5,0.5)
+contrasts(Updated_L1_L2_AJT$group) <- c(-0.5,0.5)
+
 Model_AJT<-lmer(zrating~ Complement_type*group+(1|Itemnum)
                +(Complement_type|Subject), control=lmerControl(optimizer="bobyqa"), data=Updated_L1_L2_AJT, REML=F)
 
 summary(Model_AJT)
 ```
 
-    Linear mixed model fit by maximum likelihood . t-tests use Satterthwaite's
-      method [lmerModLmerTest]
-    Formula: 
-    zrating ~ Complement_type * group + (1 | Itemnum) + (Complement_type |  
-        Subject)
-       Data: Updated_L1_L2_AJT
-    Control: lmerControl(optimizer = "bobyqa")
-
-         AIC      BIC   logLik deviance df.resid 
-      2368.2   2413.2  -1175.1   2350.2     1081 
-
-    Scaled residuals: 
-        Min      1Q  Median      3Q     Max 
-    -4.5095 -0.1515  0.2434  0.5524  2.9203 
-
-    Random effects:
-     Groups   Name             Variance Std.Dev. Corr 
-     Subject  (Intercept)      0.060830 0.24664       
-              Complement_typeZ 0.008406 0.09168  -0.19
-     Itemnum  (Intercept)      0.096467 0.31059       
-     Residual                  0.423250 0.65058       
-    Number of obs: 1090, groups:  Subject, 109; Itemnum, 60
-
-    Fixed effects:
-                                      Estimate Std. Error        df t value
-    (Intercept)                        0.44830    0.08461 120.41858   5.298
-    Complement_typeZ                  -0.10756    0.10607  96.88302  -1.014
-    groupL2_English                   -0.09273    0.07727 105.70112  -1.200
-    Complement_typeZ:groupL2_English   0.10700    0.08542 103.43587   1.253
-                                     Pr(>|t|)    
-    (Intercept)                      5.35e-07 ***
-    Complement_typeZ                    0.313    
-    groupL2_English                     0.233    
-    Complement_typeZ:groupL2_English    0.213    
-    ---
-    Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-    Correlation of Fixed Effects:
-                (Intr) Cmpl_Z grL2_E
-    Cmplmnt_tyZ -0.627              
-    grpL2_Engls -0.603  0.295       
-    Cmpl_Z:L2_E  0.334 -0.532 -0.554
+    ## Linear mixed model fit by maximum likelihood . t-tests use Satterthwaite's
+    ##   method [lmerModLmerTest]
+    ## Formula: 
+    ## zrating ~ Complement_type * group + (1 | Itemnum) + (Complement_type |  
+    ##     Subject)
+    ##    Data: Updated_L1_L2_AJT
+    ## Control: lmerControl(optimizer = "bobyqa")
+    ## 
+    ##      AIC      BIC   logLik deviance df.resid 
+    ##   2368.2   2413.2  -1175.1   2350.2     1081 
+    ## 
+    ## Scaled residuals: 
+    ##     Min      1Q  Median      3Q     Max 
+    ## -4.5095 -0.1515  0.2434  0.5524  2.9203 
+    ## 
+    ## Random effects:
+    ##  Groups   Name             Variance Std.Dev. Corr 
+    ##  Subject  (Intercept)      0.058540 0.24195       
+    ##           Complement_type1 0.008406 0.09168  -0.01
+    ##  Itemnum  (Intercept)      0.096467 0.31059       
+    ##  Residual                  0.423250 0.65058       
+    ## Number of obs: 1090, groups:  Subject, 109; Itemnum, 60
+    ## 
+    ## Fixed effects:
+    ##                          Estimate Std. Error        df t value Pr(>|t|)    
+    ## (Intercept)               0.37490    0.05139  88.88030   7.295 1.19e-10 ***
+    ## Complement_type1         -0.05405    0.09084  60.69231  -0.595    0.554    
+    ## group1                   -0.03923    0.06433 105.19769  -0.610    0.543    
+    ## Complement_type1:group1   0.10700    0.08542 103.43612   1.253    0.213    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Correlation of Fixed Effects:
+    ##             (Intr) Cmpl_1 group1
+    ## Cmplmnt_ty1  0.000              
+    ## group1      -0.201  0.000       
+    ## Cmplmnt_1:1  0.000 -0.151 -0.001
 
 ## Filter a sample of data from AJT for the project of ‘Data Science’ class
 
@@ -187,7 +191,7 @@ summary(Model_AJT)
 nrow(Updated_L1_L2_AJT) # 4690
 ```
 
-    [1] 4690
+    ## [1] 4690
 
 ``` r
 AJT_Sample <- Updated_L1_L2_AJT[1:1000,]
@@ -200,7 +204,7 @@ AJT_Sample$Subject <- as.factor(AJT_Sample$Subject)
 1000/4690
 ```
 
-    [1] 0.2132196
+    ## [1] 0.2132196
 
 ``` r
 # Read out this sample in csv. 
