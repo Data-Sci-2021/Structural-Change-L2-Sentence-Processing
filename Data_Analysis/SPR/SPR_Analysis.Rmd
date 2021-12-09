@@ -1,14 +1,13 @@
 ---
 title: "Structural change in L2 sentence processing - SPR"
 author: "Shaohua Fang"
-date: "27 Oct 2021"
+date: "Updated December 08 2021"
 output:
     github_document: 
     toc: TRUE
 ---
 
 ```{r,echo=F, message=F}
-# load R packages
 library(tidyverse)
 library(Rmisc)      # Rmisc had to be loaded after tidyverse for center() function to work
 library(lmerTest)
@@ -31,7 +30,6 @@ library(brms)
 # SPR data - L1
 
 ## Read in pre-processed L1 SPR data
-
 ```{r}
 if(file.exists("SPR_L1.csv")){
   SPR_L1 <- read.csv("SPR_L1.csv", strip.white=TRUE, header=T, stringsAsFactors=F)
@@ -340,6 +338,7 @@ summary(res.aov) # one-way ANOVA testing the difference between L1 and L2 accura
 accurate1 <- accurate1 %>% filter(str_detect(Condition,"Monkey-Exp4"))
 ```
 
+
 ```{r}
 # data points with RTs beyond 2.5 SDs of the mean were removed
 accurate_trimmed1 <- accurate1 %>% 
@@ -352,13 +351,31 @@ accurate_trimmed1  <-  accurate_trimmed1 %>% filter(RT>0)
 accurate_trimmed1 <- droplevels(subset(accurate_trimmed1, Controller!="QuestionAlt"))
 ```
 
-## Log transform RT 
 
+## Log transform RT 
 ```{r}
 accurate_trimmed1 <- accurate_trimmed1 %>% mutate(log_RT=log(RT))
 ```
 
-## # Residualization 
+
+## Density plots with means for the raw RTs
+```{r densityplot_rawdata,fig.width=4.5, fig.height=3.21, dpi=300}
+ggplot(accurate_trimmed1, aes(x=RT)) +
+    geom_density() +
+    geom_vline(aes(xintercept=mean(RT)),   # Ignore NA values for mean
+               color="red", linetype="dashed", size=1)
+```
+
+
+## Density plots with means for the log_RTs - it's close to normal distribution with the log transformed RTs
+```{r densityplot_loggeddata,fig.width=4.5, fig.height=3.21, dpi=300}
+ggplot(accurate_trimmed1, aes(x=log_RT)) +
+    geom_density() +
+    geom_vline(aes(xintercept=mean(log_RT)),   # Ignore NA values for mean
+               color="red", linetype="dashed", size=1)
+```
+
+## Residualization 
 ```{r}
 accurate_trimmed1$word_length <- nchar(as.character(accurate_trimmed1$word))
 accurate_trimmed1$word_length<- as.numeric(accurate_trimmed1$word_length)
@@ -373,21 +390,21 @@ accurate_trimmed1$Complement_type <- as.factor(accurate_trimmed1$Complement_type
 accurate_trimmed1$Ambiguity <- as.factor(accurate_trimmed1$Ambiguity)
 ```
 
-```{r}
 ## Add the language group column
+```{r}
 Exp4_trimmed$Language <- 'L1_English'
 accurate_trimmed1$Language <- 'L2_English'
 ```
 
+## Combine L1 and L2 from SPRs
 ```{r}
-## Combine L1 and L2 spr
 L1_L2_SPR_bind <- bind_rows(Exp4_trimmed,accurate_trimmed1)
 L1_L2_SPR_bind$Language <- as.factor(L1_L2_SPR_bind$Language)
 L1_L2_SPR_bind$region <- as.factor(L1_L2_SPR_bind$region)
 ```
 
 ## Line plot for L1
-```{r}
+```{r lineplot_L1,fig.width=4.5, fig.height=3.21, dpi=300}
 for_L1_plot <- L1_L2_SPR_bind %>% filter(Language=="L1_English")
 
 Summary_L1 <- for_L1_plot %>% 
@@ -407,12 +424,10 @@ ggplot(Summary_L1, aes(x=region, y=mean, group=Complement_type, color=Complement
   scale_x_discrete(labels=c("1" = "R1", "2" = "R2",
                             "3" = "R3","4" = "R4"))+
   theme(axis.text.x = element_text(face = "bold", size=7,angle=55,hjust = 1))+facet_grid(~Ambiguity)
-
-ggsave('~/Desktop/Experiments/Structural_change/SPR_L1_plot.png', width = 4.5, height = 3.21, units = "in", dpi = 300)
 ```
 
 ## Line plot for L2
-```{r}
+```{r lineplot_L2,fig.width=4.5, fig.height=3.21, dpi=300}
 for_L2_plot <- L1_L2_SPR_bind %>% filter(Language=="L2_English")
 
 Summary_L2 <- for_L2_plot %>% 
@@ -432,13 +447,10 @@ ggplot(Summary_L2, aes(x=region, y=mean, group=Complement_type, color=Complement
   scale_x_discrete(labels=c("1" = "R1", "2" = "R2",
                             "3" = "R3","4" = "R4"))+
   theme(axis.text.x = element_text(face = "bold", size=7,angle=55,hjust = 1))+facet_wrap(~Ambiguity)
-
-ggsave('~/Desktop/Experiments/Structural_change/SPR_L2_plot.png', width = 4.5, height = 3.21, units = "in", dpi = 300)
 ```
 
-
 ## Bar plot for disambiguating region (3)
-```{r}
+```{r barplot_forR3,fig.width=4.5, fig.height=3.21, dpi=300}
 # filter region 3 for both groups 
 R3 <- L1_L2_SPR_bind %>% filter(region=="3")
 
@@ -456,7 +468,7 @@ ggplot(CK_St, aes(x=Complement_type, y=mean,fill=Ambiguity)) +
 
 ## Bar plot for CQ accuracy by condition - not very meaningful as CQs have been trimmed already.  
 
-```{r}
+```{r barplot_forCQ,fig.width=4.5, fig.height=3.21, dpi=300}
 # Error bars represent standard error of the mean over participants
 # Compute the mean accuracy by condition and group 
 mean_acc_bysubject <- L1_L2_SPR_bind %>% group_by(Language,Ambiguity,Complement_type,Subject) %>% summarise_at("accuracy", list(mean = mean, sd = sd, min = min, max = max))
@@ -473,24 +485,15 @@ ggplot(Summary_mean, aes(x=Ambiguity, y=mean, fill=Complement_type)) +
   xlab("Question Voice") + ylab("CQ_Accuracy") + theme(plot.title = element_text(hjust = 0.5))  
 ```
 
+## Difference in accuracy by group - native speakers are reliably more accurate than L2 learners
 ```{r}
-##### This is how to anonymize participants
-anoymize <- L1_L2_SPR_bind[1:1000,]
+LL<-lmer(accuracy~ Language+(Language|Item)
+               +(1|Subject), control=lmerControl(optimizer="bobyqa"), data=L1_L2_SPR_bind, REML=F)
 
-anoymize$Subject <- as.factor(anoymize$Subject)
-
-#anoymize <- anoymize %>% 
-  #count(Subject, sort = TRUE) %>% 
-  #pull(Subject) %>% 
-  #as.numeric(Subject)
-
-anoymize$Subject <- as.numeric(anoymize$Subject)
-view(anoymize)
+summary(LL)
 ```
 
-
-# Regression models for region 3
-
+## Regression models for region 3 which is the critical region - big model with group as a two-level factor 
 ```{r}
 # sum coding to facilitate model interpretation  
 contrasts(R3$Ambiguity) <- c(-0.5,0.5)
@@ -501,15 +504,57 @@ R3$Subject <- as.factor(R3$Subject)
 R3$Item <- as.factor(R3$Item)
 ```
 
-## Frequentist linear mixed-effects models
+## Frequentist linear mixed-effects models 
 ```{r}
-Model_r3<-lmer(corrected_log_rt~ Ambiguity*Complement_type*Language+(Language|Item)
-               +(Ambiguity*Complement_type|Subject), control=lmerControl(optimizer="bobyqa"), data=R3, REML=F)
+Model_r3<-lmer(corrected_log_rt~ Ambiguity*Complement_type*Language+(1|Item)
+               +(1|Subject), control=lmerControl(optimizer="bobyqa"), data=R3, REML=F)
 
 summary(Model_r3)
+```
 
-## frequentist regression models using lme4 ran into convergence problems when a maximal random-effects structure was adopted - we instead adopted Bayesian linear mixed models advocated by Vasishth et al.(2018). 
+# Models by group for the frequentist modeling
 
+## L1 group
+```{r}
+R3_L1 <- R3 %>%  filter(Language=="L1_English")
+
+# sum coding to facilitate model interpretation  
+contrasts(R3_L1$Ambiguity) <- c(-0.5,0.5)
+contrasts(R3_L1$Complement_type) <- c(-0.5,0.5)
+
+# modeling
+# Note: the random effect structure simplified only when the model converged
+Model_R3_L1<-lmer(corrected_log_rt~ Ambiguity*Complement_type+(1|Item)
+               , control=lmerControl(optimizer="bobyqa"), data=R3_L1)
+
+summary(Model_R3_L1)
+
+emmeans(Model_R3_L1,pairwise~Ambiguity)
+emmeans(Model_R3_L1,pairwise~Complement_type)
+emmeans(Model_R3_L1,pairwise~Complement_type|Ambiguity)
+```
+
+## L2 group
+```{r}
+R3_L2 <- R3 %>%  filter(Language=="L2_English")
+
+# sum coding to facilitate model interpretation  
+contrasts(R3_L2$Ambiguity) <- c(-0.5,0.5)
+contrasts(R3_L2$Complement_type) <- c(-0.5,0.5)
+
+# modeling
+Model_R3_L2<-lmer(corrected_log_rt~ Ambiguity*Complement_type*nor+(1|Item)
+               +(1|Subject), control=lmerControl(optimizer="bobyqa"), data=R3_L2)
+
+summary(Model_R3_L2)
+
+emmeans(Model_R3_L2,pairwise~Ambiguity)
+emmeans(Model_R3_L2,pairwise~Complement_type)
+emmeans(Model_R3_L2,pairwise~Complement_type|Ambiguity)
+```
+
+## Frequentist regression models using lme4 ran into convergence problems when a maximal random-effects structure was adopted - we instead adopted Bayesian linear mixed models advocated by Vasishth et al.(2018). 
+```{r}
 Model_r3_baye <- brm(corrected_log_rt~Ambiguity*Complement_type*Language+(Language|Item)
                +(Ambiguity*Complement_type|Subject),
                data=R3,
@@ -519,11 +564,68 @@ Model_r3_baye <- brm(corrected_log_rt~Ambiguity*Complement_type*Language+(Langua
                inits="random",
                cores = 2)
 summary(Model_r3_baye)
+```
 
-
+```{r stanplot_forboth,fig.width=4.5, fig.height=3.21, dpi=300}
 #stanplot (Model_r3_baye, type="hist")
 pp_check(Model_r3_baye, nsamples = 100) # the observed data are plotted alongside the predicted data generated by the model. The predicted and observed data have similar distributions, and therefore the model has a reasonable fit.
+```
 
+# Models by group for the frequentist modeling
+
+## L1 group
+
+```{r}
+R3_L1_baye <- R3 %>% filter(Language=="L1_English")
+
+Model_r3_L1_baye <- brm(corrected_log_rt~Ambiguity*Complement_type+(1|Item)
+               +(Ambiguity*Complement_type|Subject),
+               data=R3_L1_baye,
+               warmup=1000,
+               iter = 3000,
+               chains = 2,
+               inits="random",
+               cores = 2)
+summary(Model_r3_L1_baye)
+```
+
+
+```{r stanplot_forL1,fig.width=4.5, fig.height=3.21, dpi=300}
+pp_check(Model_r3_L1_baye, nsamples = 100)
+```
+
+## L2 group
+```{r}
+R3_L2_baye <- R3 %>% filter(Language=="L2_English")
+
+Model_r3_L2_baye <- brm(corrected_log_rt~Ambiguity*Complement_type*nor+(1|Item)
+               +(Ambiguity*Complement_type|Subject),
+               data=R3_L2_baye,
+               warmup=1000,
+               iter = 3000,
+               chains = 2,
+               inits="random",
+               cores = 2)
+summary(Model_r3_L2_baye)
+```
+
+
+```{r stanplot_forL2,fig.width=4.5, fig.height=3.21, dpi=300}
+pp_check(Model_r3_L2_baye, nsamples = 100)
+```
+
+## This is how to anonymize participants
+```{r}
+anoymize <- L1_L2_SPR_bind[1:1000,]
+
+anoymize$Subject <- as.factor(anoymize$Subject)
+
+#anoymize <- anoymize %>% 
+  #count(Subject, sort = TRUE) %>% 
+  #pull(Subject) %>% 
+  #as.numeric(Subject)
+
+anoymize$Subject <- as.numeric(anoymize$Subject)
 ```
 
 
