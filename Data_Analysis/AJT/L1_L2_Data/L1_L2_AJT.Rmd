@@ -1,7 +1,7 @@
 ---
 title: "Structural change in L2 sentence processing - AJT"
 author: "Shaohua Fang"
-date: "27 Oct 2021"
+date: "Updated December 08 2021"
 output:
     github_document: 
     toc: TRUE
@@ -10,8 +10,6 @@ output:
 ## Load R packages
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, comment=NA)
-
 library(tidyverse)
 library(Rmisc)      # Rmisc had to be loaded after tidyverse for center() function to work
 library(lmerTest)
@@ -66,7 +64,6 @@ AJT_L2_Processed <- AJT_L2_Processed %>%
 Combined_L1_L2_AJT <- bind_rows(AJT_L1_Processed,AJT_L2_Processed)
 length(unique(Combined_L1_L2_AJT$Subject)) # 172 L1(37)+L2(135) participants 
 ```
-
 
 ## Z-score transformation
 
@@ -133,9 +130,16 @@ Updated_L1_L2_AJT$nor <- as.numeric(Updated_L1_L2_AJT$nor)
 ```
 
 
+```{r}
+# Rename factor level 
+levels(Updated_L1_L2_AJT$Complement_type)[levels(Updated_L1_L2_AJT$Complement_type)=="S"] <- "NP/S"
+levels(Updated_L1_L2_AJT$Complement_type)[levels(Updated_L1_L2_AJT$Complement_type)=="Z"] <- "NP/Z"
+```
+
+
 ## Plot by condition and group
 
-```{r}
+```{r barplot_forAJT,fig.width=4.5, fig.height=3.21, dpi=300}
 #Summarize by Subject, not observations. This gives you a mean proportion of errors *by Subject*.
 AJT_bysubject<- Updated_L1_L2_AJT %>% group_by(group,Complement_type,Subject) %>% summarise_at("zrating", list(mean=mean, sd=sd, min=min, max=max), na.rm=TRUE)
 
@@ -150,13 +154,15 @@ ggplot(summary_AJTstats, aes(x=group, y=mean,fill=Complement_type)) +
                 width=.2,                    # Width of the error bars
                 position=position_dodge(.9))+ 
   xlab("group") + ylab("zrating") + theme(plot.title = element_text(hjust = 0.5))
-
-
 ```
 
 ## Regression modeling 
 
 ```{r}
+
+contrasts(Updated_L1_L2_AJT$Complement_type) <- c(-0.5,0.5)
+contrasts(Updated_L1_L2_AJT$group) <- c(-0.5,0.5)
+
 Model_AJT<-lmer(zrating~ Complement_type*group+(1|Itemnum)
                +(Complement_type|Subject), control=lmerControl(optimizer="bobyqa"), data=Updated_L1_L2_AJT, REML=F)
 
