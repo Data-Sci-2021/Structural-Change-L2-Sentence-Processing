@@ -1,7 +1,7 @@
 Structural change in L2 sentence processing - SPR
 ================
 Shaohua Fang
-27 Oct 2021
+Updated December 08 2021
 
 # SPR data - L1
 
@@ -385,7 +385,29 @@ accurate_trimmed1 <- droplevels(subset(accurate_trimmed1, Controller!="QuestionA
 accurate_trimmed1 <- accurate_trimmed1 %>% mutate(log_RT=log(RT))
 ```
 
-## # Residualization
+## Density plots with means for the raw RTs
+
+``` r
+ggplot(accurate_trimmed1, aes(x=RT)) +
+    geom_density() +
+    geom_vline(aes(xintercept=mean(RT)),   # Ignore NA values for mean
+               color="red", linetype="dashed", size=1)
+```
+
+![](SPR_Analysis_files/figure-gfm/densityplot_rawdata-1.png)<!-- -->
+
+## Density plots with means for the log_RTs - it’s close to normal distribution with the log transformed RTs
+
+``` r
+ggplot(accurate_trimmed1, aes(x=log_RT)) +
+    geom_density() +
+    geom_vline(aes(xintercept=mean(log_RT)),   # Ignore NA values for mean
+               color="red", linetype="dashed", size=1)
+```
+
+![](SPR_Analysis_files/figure-gfm/densityplot_loggeddata-1.png)<!-- -->
+
+## Residualization
 
 ``` r
 accurate_trimmed1$word_length <- nchar(as.character(accurate_trimmed1$word))
@@ -402,14 +424,16 @@ accurate_trimmed1$Complement_type <- as.factor(accurate_trimmed1$Complement_type
 accurate_trimmed1$Ambiguity <- as.factor(accurate_trimmed1$Ambiguity)
 ```
 
-``` r
 ## Add the language group column
+
+``` r
 Exp4_trimmed$Language <- 'L1_English'
 accurate_trimmed1$Language <- 'L2_English'
 ```
 
+## Combine L1 and L2 from SPRs
+
 ``` r
-## Combine L1 and L2 spr
 L1_L2_SPR_bind <- bind_rows(Exp4_trimmed,accurate_trimmed1)
 L1_L2_SPR_bind$Language <- as.factor(L1_L2_SPR_bind$Language)
 L1_L2_SPR_bind$region <- as.factor(L1_L2_SPR_bind$region)
@@ -439,11 +463,7 @@ ggplot(Summary_L1, aes(x=region, y=mean, group=Complement_type, color=Complement
   theme(axis.text.x = element_text(face = "bold", size=7,angle=55,hjust = 1))+facet_grid(~Ambiguity)
 ```
 
-![](SPR_Analysis_files/figure-gfm/unnamed-chunk-49-1.png)<!-- -->
-
-``` r
-ggsave('~/Desktop/Experiments/Structural_change/SPR_L1_plot.png', width = 4.5, height = 3.21, units = "in", dpi = 300)
-```
+![](SPR_Analysis_files/figure-gfm/lineplot_L1-1.png)<!-- -->
 
 ## Line plot for L2
 
@@ -469,11 +489,7 @@ ggplot(Summary_L2, aes(x=region, y=mean, group=Complement_type, color=Complement
   theme(axis.text.x = element_text(face = "bold", size=7,angle=55,hjust = 1))+facet_wrap(~Ambiguity)
 ```
 
-![](SPR_Analysis_files/figure-gfm/unnamed-chunk-50-1.png)<!-- -->
-
-``` r
-ggsave('~/Desktop/Experiments/Structural_change/SPR_L2_plot.png', width = 4.5, height = 3.21, units = "in", dpi = 300)
-```
+![](SPR_Analysis_files/figure-gfm/lineplot_L2-1.png)<!-- -->
 
 ## Bar plot for disambiguating region (3)
 
@@ -493,7 +509,7 @@ ggplot(CK_St, aes(x=Complement_type, y=mean,fill=Ambiguity)) +
   xlab("region") + ylab("ResidualLog RT (ms)") + theme(plot.title = element_text(hjust = 0.5))+facet_wrap(~Language)
 ```
 
-![](SPR_Analysis_files/figure-gfm/unnamed-chunk-51-1.png)<!-- -->
+![](SPR_Analysis_files/figure-gfm/barplot_forR3-1.png)<!-- -->
 
 ## Bar plot for CQ accuracy by condition - not very meaningful as CQs have been trimmed already.
 
@@ -514,24 +530,56 @@ ggplot(Summary_mean, aes(x=Ambiguity, y=mean, fill=Complement_type)) +
   xlab("Question Voice") + ylab("CQ_Accuracy") + theme(plot.title = element_text(hjust = 0.5))  
 ```
 
-![](SPR_Analysis_files/figure-gfm/unnamed-chunk-52-1.png)<!-- -->
+![](SPR_Analysis_files/figure-gfm/barplot_forCQ-1.png)<!-- -->
+
+## Difference in accuracy by group - native speakers are reliably more accurate than L2 learners
 
 ``` r
-##### This is how to anonymize participants
-anoymize <- L1_L2_SPR_bind[1:1000,]
-
-anoymize$Subject <- as.factor(anoymize$Subject)
-
-#anoymize <- anoymize %>% 
-  #count(Subject, sort = TRUE) %>% 
-  #pull(Subject) %>% 
-  #as.numeric(Subject)
-
-anoymize$Subject <- as.numeric(anoymize$Subject)
-view(anoymize)
+LL<-lmer(accuracy~ Language+(Language|Item)
+               +(1|Subject), control=lmerControl(optimizer="bobyqa"), data=L1_L2_SPR_bind, REML=F)
 ```
 
-# Regression models for region 3
+    ## boundary (singular) fit: see ?isSingular
+
+``` r
+summary(LL)
+```
+
+    ## Linear mixed model fit by maximum likelihood . t-tests use Satterthwaite's
+    ##   method [lmerModLmerTest]
+    ## Formula: accuracy ~ Language + (Language | Item) + (1 | Subject)
+    ##    Data: L1_L2_SPR_bind
+    ## Control: lmerControl(optimizer = "bobyqa")
+    ## 
+    ##       AIC       BIC    logLik  deviance  df.resid 
+    ## -163714.8 -163668.5   81864.4 -163728.8      5510 
+    ## 
+    ## Scaled residuals: 
+    ##        Min         1Q     Median         3Q        Max 
+    ## -3.146e-06 -1.060e-06 -2.015e-07  8.356e-07  2.413e-06 
+    ## 
+    ## Random effects:
+    ##  Groups   Name               Variance  Std.Dev.  Corr 
+    ##  Subject  (Intercept)        4.756e-05 6.896e-03      
+    ##  Item     (Intercept)        1.130e-25 3.362e-13      
+    ##           LanguageL2_English 2.669e-05 5.166e-03 -0.99
+    ##  Residual                    4.520e-15 6.723e-08      
+    ## Number of obs: 5517, groups:  Subject, 89; Item, 16
+    ## 
+    ## Fixed effects:
+    ##                     Estimate Std. Error        df t value Pr(>|t|)   
+    ## (Intercept)         1.001983   0.001404  0.913423  713.64  0.00155 **
+    ## LanguageL2_English -0.113331   0.002089  0.944929  -54.25  0.01448 * 
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Correlation of Fixed Effects:
+    ##             (Intr)
+    ## LnggL2_Engl -0.671
+    ## optimizer (bobyqa) convergence code: 0 (OK)
+    ## boundary (singular) fit: see ?isSingular
+
+## Regression models for region 3 which is the critical region - big model with group as a two-level factor
 
 ``` r
 # sum coding to facilitate model interpretation  
@@ -546,79 +594,336 @@ R3$Item <- as.factor(R3$Item)
 ## Frequentist linear mixed-effects models
 
 ``` r
-Model_r3<-lmer(corrected_log_rt~ Ambiguity*Complement_type*Language+(Language|Item)
-               +(Ambiguity*Complement_type|Subject), control=lmerControl(optimizer="bobyqa"), data=R3, REML=F)
-```
+Model_r3<-lmer(corrected_log_rt~ Ambiguity*Complement_type*Language+(1|Item)
+               +(1|Subject), control=lmerControl(optimizer="bobyqa"), data=R3, REML=F)
 
-    ## boundary (singular) fit: see ?isSingular
-
-``` r
 summary(Model_r3)
 ```
 
     ## Linear mixed model fit by maximum likelihood . t-tests use Satterthwaite's
     ##   method [lmerModLmerTest]
-    ## Formula: 
-    ## corrected_log_rt ~ Ambiguity * Complement_type * Language + (Language |  
-    ##     Item) + (Ambiguity * Complement_type | Subject)
+    ## Formula: corrected_log_rt ~ Ambiguity * Complement_type * Language + (1 |  
+    ##     Item) + (1 | Subject)
     ##    Data: R3
     ## Control: lmerControl(optimizer = "bobyqa")
     ## 
     ##      AIC      BIC   logLik deviance df.resid 
-    ##   1711.4   1826.7   -833.7   1667.4     1375 
+    ##   1767.8   1825.5   -872.9   1745.8     1386 
     ## 
     ## Scaled residuals: 
     ##     Min      1Q  Median      3Q     Max 
-    ## -3.3840 -0.6743 -0.0436  0.5891  3.7522 
+    ## -3.6357 -0.6713 -0.0746  0.5920  3.9910 
     ## 
     ## Random effects:
-    ##  Groups   Name                        Variance Std.Dev. Corr             
-    ##  Subject  (Intercept)                 0.006851 0.08277                   
-    ##           Ambiguity1                  0.066020 0.25694  -0.54            
-    ##           Complement_type1            0.024470 0.15643   0.95 -0.27      
-    ##           Ambiguity1:Complement_type1 0.004028 0.06347  -0.78  0.95 -0.56
-    ##  Item     (Intercept)                 0.002274 0.04769                   
-    ##           LanguageL2_English          0.006545 0.08090  1.00             
-    ##  Residual                             0.170023 0.41234                   
+    ##  Groups   Name        Variance Std.Dev.
+    ##  Subject  (Intercept) 0.004135 0.0643  
+    ##  Item     (Intercept) 0.010553 0.1027  
+    ##  Residual             0.196702 0.4435  
     ## Number of obs: 1397, groups:  Subject, 89; Item, 16
     ## 
     ## Fixed effects:
-    ##                                                 Estimate Std. Error        df
-    ## (Intercept)                                      0.07696    0.02983  49.78907
-    ## Ambiguity1                                      -0.22727    0.06783  90.31080
-    ## Complement_type1                                 0.12377    0.05355 101.42667
-    ## LanguageL2_English                              -0.04959    0.03779  36.31185
-    ## Ambiguity1:Complement_type1                     -0.14929    0.08699 657.70914
-    ## Ambiguity1:LanguageL2_English                   -0.08244    0.07924  89.78789
-    ## Complement_type1:LanguageL2_English             -0.06488    0.06253 100.62275
-    ## Ambiguity1:Complement_type1:LanguageL2_English   0.03234    0.10139 655.93957
-    ##                                                t value Pr(>|t|)   
-    ## (Intercept)                                      2.580  0.01288 * 
-    ## Ambiguity1                                      -3.351  0.00118 **
-    ## Complement_type1                                 2.311  0.02285 * 
-    ## LanguageL2_English                              -1.312  0.19770   
-    ## Ambiguity1:Complement_type1                     -1.716  0.08660 . 
-    ## Ambiguity1:LanguageL2_English                   -1.040  0.30093   
-    ## Complement_type1:LanguageL2_English             -1.038  0.30194   
-    ## Ambiguity1:Complement_type1:LanguageL2_English   0.319  0.74984   
+    ##                                                  Estimate Std. Error         df
+    ## (Intercept)                                       0.07658    0.03692   40.56826
+    ## Ambiguity1                                       -0.22682    0.04615 1299.83511
+    ## Complement_type1                                  0.12475    0.04610 1298.85354
+    ## LanguageL2_English                               -0.05015    0.03097   89.32024
+    ## Ambiguity1:Complement_type1                      -0.15356    0.09232 1299.19469
+    ## Ambiguity1:LanguageL2_English                    -0.08104    0.05379 1297.55985
+    ## Complement_type1:LanguageL2_English              -0.06856    0.05378 1297.55997
+    ## Ambiguity1:Complement_type1:LanguageL2_English    0.04307    0.10758 1297.04552
+    ##                                                t value Pr(>|t|)    
+    ## (Intercept)                                      2.074   0.0445 *  
+    ## Ambiguity1                                      -4.914    1e-06 ***
+    ## Complement_type1                                 2.706   0.0069 ** 
+    ## LanguageL2_English                              -1.620   0.1088    
+    ## Ambiguity1:Complement_type1                     -1.663   0.0965 .  
+    ## Ambiguity1:LanguageL2_English                   -1.507   0.1322    
+    ## Complement_type1:LanguageL2_English             -1.275   0.2027    
+    ## Ambiguity1:Complement_type1:LanguageL2_English   0.400   0.6890    
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
     ## Correlation of Fixed Effects:
     ##             (Intr) Ambgt1 Cmpl_1 LnL2_E Am1:C_1 A1:LL2 C_1:LL
-    ## Ambiguity1  -0.250                                           
-    ## Cmplmnt_ty1  0.337 -0.134                                    
-    ## LnggL2_Engl -0.449  0.197 -0.266                             
-    ## Ambgty1:C_1 -0.080  0.126 -0.070  0.063                      
-    ## Ambg1:LL2_E  0.214 -0.856  0.115 -0.230 -0.108               
-    ## Cmp_1:LL2_E -0.289  0.115 -0.856  0.309  0.060  -0.132       
-    ## A1:C_1:LL2_  0.069 -0.108  0.060 -0.071 -0.857   0.123 -0.067
-    ## optimizer (bobyqa) convergence code: 0 (OK)
-    ## boundary (singular) fit: see ?isSingular
+    ## Ambiguity1  -0.012                                           
+    ## Cmplmnt_ty1  0.013 -0.014                                    
+    ## LnggL2_Engl -0.615  0.015 -0.015                             
+    ## Ambgty1:C_1 -0.009  0.020 -0.019  0.011                      
+    ## Ambg1:LL2_E  0.011 -0.857  0.012 -0.015 -0.017               
+    ## Cmp_1:LL2_E -0.011  0.012 -0.857  0.014  0.017  -0.012       
+    ## A1:C_1:LL2_  0.008 -0.017  0.017 -0.010 -0.857   0.016 -0.017
+
+# Models by group for the frequentist modeling
+
+## L1 group
 
 ``` r
-## frequentist regression models using lme4 ran into convergence problems when a maximal random-effects structure was adopted - we instead adopted Bayesian linear mixed models advocated by Vasishth et al.(2018). 
+R3_L1 <- R3 %>%  filter(Language=="L1_English")
 
+# sum coding to facilitate model interpretation  
+contrasts(R3_L1$Ambiguity) <- c(-0.5,0.5)
+contrasts(R3_L1$Complement_type) <- c(-0.5,0.5)
+
+# modeling
+# Note: the random effect structure simplified only when the model converged
+Model_R3_L1<-lmer(corrected_log_rt~ Ambiguity*Complement_type+(1|Item)
+               , control=lmerControl(optimizer="bobyqa"), data=R3_L1)
+
+summary(Model_R3_L1)
+```
+
+    ## Linear mixed model fit by REML. t-tests use Satterthwaite's method [
+    ## lmerModLmerTest]
+    ## Formula: corrected_log_rt ~ Ambiguity * Complement_type + (1 | Item)
+    ##    Data: R3_L1
+    ## Control: lmerControl(optimizer = "bobyqa")
+    ## 
+    ## REML criterion at convergence: 340
+    ## 
+    ## Scaled residuals: 
+    ##      Min       1Q   Median       3Q      Max 
+    ## -2.62575 -0.74541 -0.06792  0.56651  3.00075 
+    ## 
+    ## Random effects:
+    ##  Groups   Name        Variance Std.Dev.
+    ##  Item     (Intercept) 0.001758 0.04193 
+    ##  Residual             0.139288 0.37321 
+    ## Number of obs: 371, groups:  Item, 16
+    ## 
+    ## Fixed effects:
+    ##                              Estimate Std. Error        df t value Pr(>|t|)    
+    ## (Intercept)                   0.07545    0.02204  15.10322   3.423  0.00374 ** 
+    ## Ambiguity1                   -0.22450    0.03883 358.29516  -5.782 1.61e-08 ***
+    ## Complement_type1              0.12350    0.03878 352.99656   3.185  0.00158 ** 
+    ## Ambiguity1:Complement_type1  -0.14112    0.07766 358.76065  -1.817  0.07003 .  
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Correlation of Fixed Effects:
+    ##             (Intr) Ambgt1 Cmpl_1
+    ## Ambiguity1  -0.017              
+    ## Cmplmnt_ty1  0.017 -0.014       
+    ## Ambgty1:C_1 -0.012  0.019 -0.019
+
+``` r
+emmeans(Model_R3_L1,pairwise~Ambiguity)
+```
+
+    ## NOTE: Results may be misleading due to involvement in interactions
+
+    ## $emmeans
+    ##  Ambiguity    emmean     SE   df lower.CL upper.CL
+    ##  ambiguous    0.1877 0.0296 46.9   0.1281    0.247
+    ##  unambiguous -0.0368 0.0292 43.8  -0.0956    0.022
+    ## 
+    ## Results are averaged over the levels of: Complement_type 
+    ## Degrees-of-freedom method: kenward-roger 
+    ## Confidence level used: 0.95 
+    ## 
+    ## $contrasts
+    ##  contrast                estimate     SE  df t.ratio p.value
+    ##  ambiguous - unambiguous    0.224 0.0389 358   5.774  <.0001
+    ## 
+    ## Results are averaged over the levels of: Complement_type 
+    ## Degrees-of-freedom method: kenward-roger
+
+``` r
+emmeans(Model_R3_L1,pairwise~Complement_type)
+```
+
+    ## NOTE: Results may be misleading due to involvement in interactions
+
+    ## $emmeans
+    ##  Complement_type emmean     SE   df lower.CL upper.CL
+    ##  NP/S            0.0137 0.0291 44.4  -0.0449   0.0723
+    ##  NP/Z            0.1372 0.0296 47.2   0.0776   0.1968
+    ## 
+    ## Results are averaged over the levels of: Ambiguity 
+    ## Degrees-of-freedom method: kenward-roger 
+    ## Confidence level used: 0.95 
+    ## 
+    ## $contrasts
+    ##  contrast        estimate     SE  df t.ratio p.value
+    ##  (NP/S) - (NP/Z)   -0.124 0.0388 353  -3.184  0.0016
+    ## 
+    ## Results are averaged over the levels of: Ambiguity 
+    ## Degrees-of-freedom method: kenward-roger
+
+``` r
+emmeans(Model_R3_L1,pairwise~Complement_type|Ambiguity)
+```
+
+    ## $emmeans
+    ## Ambiguity = ambiguous:
+    ##  Complement_type  emmean     SE  df lower.CL upper.CL
+    ##  NP/S             0.0907 0.0399 129   0.0116   0.1697
+    ##  NP/Z             0.2847 0.0412 142   0.2033   0.3662
+    ## 
+    ## Ambiguity = unambiguous:
+    ##  Complement_type  emmean     SE  df lower.CL upper.CL
+    ##  NP/S            -0.0633 0.0398 126  -0.1420   0.0154
+    ##  NP/Z            -0.0103 0.0400 128  -0.0894   0.0688
+    ## 
+    ## Degrees-of-freedom method: kenward-roger 
+    ## Confidence level used: 0.95 
+    ## 
+    ## $contrasts
+    ## Ambiguity = ambiguous:
+    ##  contrast        estimate     SE  df t.ratio p.value
+    ##  (NP/S) - (NP/Z)  -0.1941 0.0554 355  -3.501  0.0005
+    ## 
+    ## Ambiguity = unambiguous:
+    ##  contrast        estimate     SE  df t.ratio p.value
+    ##  (NP/S) - (NP/Z)  -0.0529 0.0544 357  -0.973  0.3312
+    ## 
+    ## Degrees-of-freedom method: kenward-roger
+
+## L2 group
+
+``` r
+R3_L2 <- R3 %>%  filter(Language=="L2_English")
+
+# sum coding to facilitate model interpretation  
+contrasts(R3_L2$Ambiguity) <- c(-0.5,0.5)
+contrasts(R3_L2$Complement_type) <- c(-0.5,0.5)
+
+# modeling
+Model_R3_L2<-lmer(corrected_log_rt~ Ambiguity*Complement_type*nor+(1|Item)
+               +(1|Subject), control=lmerControl(optimizer="bobyqa"), data=R3_L2)
+
+summary(Model_R3_L2)
+```
+
+    ## Linear mixed model fit by REML. t-tests use Satterthwaite's method [
+    ## lmerModLmerTest]
+    ## Formula: corrected_log_rt ~ Ambiguity * Complement_type * nor + (1 | Item) +  
+    ##     (1 | Subject)
+    ##    Data: R3_L2
+    ## Control: lmerControl(optimizer = "bobyqa")
+    ## 
+    ## REML criterion at convergence: 1410.3
+    ## 
+    ## Scaled residuals: 
+    ##     Min      1Q  Median      3Q     Max 
+    ## -3.4997 -0.7076 -0.0518  0.6279  3.7090 
+    ## 
+    ## Random effects:
+    ##  Groups   Name        Variance Std.Dev.
+    ##  Subject  (Intercept) 0.004601 0.06783 
+    ##  Item     (Intercept) 0.016951 0.13020 
+    ##  Residual             0.218739 0.46770 
+    ## Number of obs: 1011, groups:  Subject, 64; Item, 16
+    ## 
+    ## Fixed effects:
+    ##                                   Estimate Std. Error         df t value
+    ## (Intercept)                       0.019083   0.036781  16.624634   0.519
+    ## Ambiguity1                       -0.310151   0.029717 927.570141 -10.437
+    ## Complement_type1                  0.059784   0.029705 927.384872   2.013
+    ## nor                               0.044484   0.017534  61.787393   2.537
+    ## Ambiguity1:Complement_type1      -0.113533   0.059441 927.726821  -1.910
+    ## Ambiguity1:nor                    0.002957   0.030559 930.754538   0.097
+    ## Complement_type1:nor             -0.003155   0.030577 931.176680  -0.103
+    ## Ambiguity1:Complement_type1:nor  -0.013295   0.061168 931.449083  -0.217
+    ##                                 Pr(>|t|)    
+    ## (Intercept)                       0.6107    
+    ## Ambiguity1                        <2e-16 ***
+    ## Complement_type1                  0.0444 *  
+    ## nor                               0.0137 *  
+    ## Ambiguity1:Complement_type1       0.0564 .  
+    ## Ambiguity1:nor                    0.9229    
+    ## Complement_type1:nor              0.9178    
+    ## Ambiguity1:Complement_type1:nor   0.8280    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Correlation of Fixed Effects:
+    ##             (Intr) Ambgt1 Cmpl_1 nor    Am1:C_1 Ambg1: Cmp_1:
+    ## Ambiguity1  -0.003                                           
+    ## Cmplmnt_ty1  0.002 -0.003                                    
+    ## nor         -0.061 -0.003  0.001                             
+    ## Ambgty1:C_1 -0.001  0.005 -0.008 -0.006                      
+    ## Ambigty1:nr -0.001 -0.133 -0.007 -0.007  0.005               
+    ## Cmplmnt_t1:  0.001 -0.007 -0.134  0.004 -0.003  -0.001       
+    ## Ambgt1:C_1: -0.003 -0.003 -0.003 -0.001 -0.133   0.005 -0.009
+
+``` r
+emmeans(Model_R3_L2,pairwise~Ambiguity)
+```
+
+    ## NOTE: Results may be misleading due to involvement in interactions
+
+    ## $emmeans
+    ##  Ambiguity   emmean     SE   df lower.CL upper.CL
+    ##  ambiguous     0.18 0.0396 22.4   0.0976   0.2617
+    ##  unambiguous  -0.13 0.0395 22.1  -0.2120  -0.0482
+    ## 
+    ## Results are averaged over the levels of: Complement_type 
+    ## Degrees-of-freedom method: kenward-roger 
+    ## Confidence level used: 0.95 
+    ## 
+    ## $contrasts
+    ##  contrast                estimate     SE  df t.ratio p.value
+    ##  ambiguous - unambiguous     0.31 0.0295 928  10.517  <.0001
+    ## 
+    ## Results are averaged over the levels of: Complement_type 
+    ## Degrees-of-freedom method: kenward-roger
+
+``` r
+emmeans(Model_R3_L2,pairwise~Complement_type)
+```
+
+    ## NOTE: Results may be misleading due to involvement in interactions
+
+    ## $emmeans
+    ##  Complement_type   emmean     SE   df lower.CL upper.CL
+    ##  NP/S            -0.00495 0.0395 22.2  -0.0869    0.077
+    ##  NP/Z             0.05444 0.0396 22.3  -0.0276    0.136
+    ## 
+    ## Results are averaged over the levels of: Ambiguity 
+    ## Degrees-of-freedom method: kenward-roger 
+    ## Confidence level used: 0.95 
+    ## 
+    ## $contrasts
+    ##  contrast        estimate     SE  df t.ratio p.value
+    ##  (NP/S) - (NP/Z)  -0.0594 0.0294 928  -2.017  0.0440
+    ## 
+    ## Results are averaged over the levels of: Ambiguity 
+    ## Degrees-of-freedom method: kenward-roger
+
+``` r
+emmeans(Model_R3_L2,pairwise~Complement_type|Ambiguity)
+```
+
+    ## NOTE: Results may be misleading due to involvement in interactions
+
+    ## $emmeans
+    ## Ambiguity = ambiguous:
+    ##  Complement_type emmean     SE   df lower.CL upper.CL
+    ##  NP/S             0.121 0.0447 36.2   0.0305   0.2118
+    ##  NP/Z             0.238 0.0449 36.8   0.1472   0.3291
+    ## 
+    ## Ambiguity = unambiguous:
+    ##  Complement_type emmean     SE   df lower.CL upper.CL
+    ##  NP/S            -0.131 0.0446 35.9  -0.2215  -0.0405
+    ##  NP/Z            -0.129 0.0446 35.9  -0.2197  -0.0388
+    ## 
+    ## Degrees-of-freedom method: kenward-roger 
+    ## Confidence level used: 0.95 
+    ## 
+    ## $contrasts
+    ## Ambiguity = ambiguous:
+    ##  contrast        estimate     SE  df t.ratio p.value
+    ##  (NP/S) - (NP/Z) -0.11699 0.0418 928  -2.797  0.0053
+    ## 
+    ## Ambiguity = unambiguous:
+    ##  contrast        estimate     SE  df t.ratio p.value
+    ##  (NP/S) - (NP/Z) -0.00177 0.0415 927  -0.043  0.9660
+    ## 
+    ## Degrees-of-freedom method: kenward-roger
+
+## Frequentist regression models using lme4 ran into convergence problems when a maximal random-effects structure was adopted - we instead adopted Bayesian linear mixed models advocated by Vasishth et al.(2018).
+
+``` r
 Model_r3_baye <- brm(corrected_log_rt~Ambiguity*Complement_type*Language+(Language|Item)
                +(Ambiguity*Complement_type|Subject),
                data=R3,
@@ -630,6 +935,30 @@ Model_r3_baye <- brm(corrected_log_rt~Ambiguity*Complement_type*Language+(Langua
 ```
 
     ## Compiling Stan program...
+
+    ## Trying to compile a simple C file
+
+    ## Running /Library/Frameworks/R.framework/Resources/bin/R CMD SHLIB foo.c
+    ## clang -mmacosx-version-min=10.13 -I"/Library/Frameworks/R.framework/Resources/include" -DNDEBUG   -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/Rcpp/include/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/unsupported"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/BH/include" -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/StanHeaders/include/src/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/StanHeaders/include/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppParallel/include/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/rstan/include" -DEIGEN_NO_DEBUG  -DBOOST_DISABLE_ASSERTS  -DBOOST_PENDING_INTEGER_LOG2_HPP  -DSTAN_THREADS  -DBOOST_NO_AUTO_PTR  -include '/Library/Frameworks/R.framework/Versions/4.1/Resources/library/StanHeaders/include/stan/math/prim/mat/fun/Eigen.hpp'  -D_REENTRANT -DRCPP_PARALLEL_USE_TBB=1   -I/usr/local/include   -fPIC  -Wall -g -O2  -c foo.c -o foo.o
+    ## In file included from <built-in>:1:
+    ## In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/StanHeaders/include/stan/math/prim/mat/fun/Eigen.hpp:13:
+    ## In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/Dense:1:
+    ## In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/Core:88:
+    ## /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/src/Core/util/Macros.h:628:1: error: unknown type name 'namespace'
+    ## namespace Eigen {
+    ## ^
+    ## /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/src/Core/util/Macros.h:628:16: error: expected ';' after top level declarator
+    ## namespace Eigen {
+    ##                ^
+    ##                ;
+    ## In file included from <built-in>:1:
+    ## In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/StanHeaders/include/stan/math/prim/mat/fun/Eigen.hpp:13:
+    ## In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/Dense:1:
+    ## /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/Core:96:10: fatal error: 'complex' file not found
+    ## #include <complex>
+    ##          ^~~~~~~~~
+    ## 3 errors generated.
+    ## make: *** [foo.o] Error 1
 
     ## Start sampling
 
@@ -647,72 +976,72 @@ summary(Model_r3_baye)
     ## Group-Level Effects: 
     ## ~Item (Number of levels: 16) 
     ##                                   Estimate Est.Error l-95% CI u-95% CI Rhat
-    ## sd(Intercept)                         0.06      0.03     0.01     0.14 1.00
+    ## sd(Intercept)                         0.06      0.03     0.01     0.13 1.00
     ## sd(LanguageL2_English)                0.11      0.04     0.04     0.20 1.00
-    ## cor(Intercept,LanguageL2_English)     0.41      0.42    -0.50     0.98 1.00
+    ## cor(Intercept,LanguageL2_English)     0.39      0.43    -0.55     0.97 1.00
     ##                                   Bulk_ESS Tail_ESS
-    ## sd(Intercept)                         1279      992
-    ## sd(LanguageL2_English)                1106     1843
-    ## cor(Intercept,LanguageL2_English)      777     1356
+    ## sd(Intercept)                         1038      764
+    ## sd(LanguageL2_English)                 787     1555
+    ## cor(Intercept,LanguageL2_English)      598     1066
     ## 
     ## ~Subject (Number of levels: 89) 
     ##                                                   Estimate Est.Error l-95% CI
     ## sd(Intercept)                                         0.08      0.02     0.05
-    ## sd(Ambiguity1)                                        0.27      0.03     0.20
+    ## sd(Ambiguity1)                                        0.26      0.03     0.20
     ## sd(Complement_type1)                                  0.16      0.03     0.09
     ## sd(Ambiguity1:Complement_type1)                       0.09      0.06     0.00
-    ## cor(Intercept,Ambiguity1)                            -0.46      0.19    -0.78
-    ## cor(Intercept,Complement_type1)                       0.72      0.16     0.34
-    ## cor(Ambiguity1,Complement_type1)                     -0.23      0.21    -0.61
-    ## cor(Intercept,Ambiguity1:Complement_type1)           -0.16      0.40    -0.84
-    ## cor(Ambiguity1,Ambiguity1:Complement_type1)           0.20      0.39    -0.64
-    ## cor(Complement_type1,Ambiguity1:Complement_type1)    -0.13      0.40    -0.83
+    ## cor(Intercept,Ambiguity1)                            -0.46      0.18    -0.79
+    ## cor(Intercept,Complement_type1)                       0.72      0.16     0.33
+    ## cor(Ambiguity1,Complement_type1)                     -0.23      0.21    -0.62
+    ## cor(Intercept,Ambiguity1:Complement_type1)           -0.15      0.39    -0.82
+    ## cor(Ambiguity1,Ambiguity1:Complement_type1)           0.20      0.40    -0.66
+    ## cor(Complement_type1,Ambiguity1:Complement_type1)    -0.12      0.40    -0.83
     ##                                                   u-95% CI Rhat Bulk_ESS
-    ## sd(Intercept)                                         0.12 1.00     1898
-    ## sd(Ambiguity1)                                        0.33 1.00     1942
-    ## sd(Complement_type1)                                  0.23 1.00     2059
-    ## sd(Ambiguity1:Complement_type1)                       0.24 1.00      812
-    ## cor(Intercept,Ambiguity1)                            -0.07 1.00      755
-    ## cor(Intercept,Complement_type1)                       0.96 1.00     1494
-    ## cor(Ambiguity1,Complement_type1)                      0.20 1.00     2259
-    ## cor(Intercept,Ambiguity1:Complement_type1)            0.67 1.00     3566
-    ## cor(Ambiguity1,Ambiguity1:Complement_type1)           0.84 1.00     4544
-    ## cor(Complement_type1,Ambiguity1:Complement_type1)     0.68 1.00     3938
+    ## sd(Intercept)                                         0.12 1.00     1969
+    ## sd(Ambiguity1)                                        0.33 1.00     1750
+    ## sd(Complement_type1)                                  0.22 1.00     2117
+    ## sd(Ambiguity1:Complement_type1)                       0.23 1.00      984
+    ## cor(Intercept,Ambiguity1)                            -0.09 1.00      730
+    ## cor(Intercept,Complement_type1)                       0.96 1.00     1212
+    ## cor(Ambiguity1,Complement_type1)                      0.20 1.00     2116
+    ## cor(Intercept,Ambiguity1:Complement_type1)            0.64 1.00     3228
+    ## cor(Ambiguity1,Ambiguity1:Complement_type1)           0.85 1.00     3740
+    ## cor(Complement_type1,Ambiguity1:Complement_type1)     0.70 1.00     3507
     ##                                                   Tail_ESS
-    ## sd(Intercept)                                         2619
-    ## sd(Ambiguity1)                                        2703
-    ## sd(Complement_type1)                                  2101
-    ## sd(Ambiguity1:Complement_type1)                       1126
-    ## cor(Intercept,Ambiguity1)                             1576
-    ## cor(Intercept,Complement_type1)                       2226
-    ## cor(Ambiguity1,Complement_type1)                      3091
-    ## cor(Intercept,Ambiguity1:Complement_type1)            2249
-    ## cor(Ambiguity1,Ambiguity1:Complement_type1)           2742
-    ## cor(Complement_type1,Ambiguity1:Complement_type1)     2769
+    ## sd(Intercept)                                         2511
+    ## sd(Ambiguity1)                                        2563
+    ## sd(Complement_type1)                                  2074
+    ## sd(Ambiguity1:Complement_type1)                       1458
+    ## cor(Intercept,Ambiguity1)                             1307
+    ## cor(Intercept,Complement_type1)                       2017
+    ## cor(Ambiguity1,Complement_type1)                      2275
+    ## cor(Intercept,Ambiguity1:Complement_type1)            2897
+    ## cor(Ambiguity1,Ambiguity1:Complement_type1)           2724
+    ## cor(Complement_type1,Ambiguity1:Complement_type1)     3200
     ## 
     ## Population-Level Effects: 
     ##                                                Estimate Est.Error l-95% CI
     ## Intercept                                          0.08      0.03     0.01
     ## Ambiguity1                                        -0.23      0.07    -0.36
     ## Complement_type1                                   0.12      0.05     0.02
-    ## LanguageL2_English                                -0.05      0.04    -0.14
-    ## Ambiguity1:Complement_type1                       -0.15      0.09    -0.32
-    ## Ambiguity1:LanguageL2_English                     -0.08      0.08    -0.23
-    ## Complement_type1:LanguageL2_English               -0.06      0.06    -0.19
-    ## Ambiguity1:Complement_type1:LanguageL2_English     0.03      0.10    -0.18
+    ## LanguageL2_English                                -0.05      0.04    -0.13
+    ## Ambiguity1:Complement_type1                       -0.15      0.09    -0.33
+    ## Ambiguity1:LanguageL2_English                     -0.08      0.08    -0.24
+    ## Complement_type1:LanguageL2_English               -0.07      0.06    -0.20
+    ## Ambiguity1:Complement_type1:LanguageL2_English     0.03      0.11    -0.18
     ##                                                u-95% CI Rhat Bulk_ESS Tail_ESS
-    ## Intercept                                          0.14 1.00     2760     2943
-    ## Ambiguity1                                        -0.09 1.00     2120     2544
-    ## Complement_type1                                   0.23 1.00     2410     2595
-    ## LanguageL2_English                                 0.04 1.00     2189     2397
-    ## Ambiguity1:Complement_type1                        0.03 1.00     3767     2883
-    ## Ambiguity1:LanguageL2_English                      0.08 1.00     2159     2775
-    ## Complement_type1:LanguageL2_English                0.06 1.00     2349     2476
-    ## Ambiguity1:Complement_type1:LanguageL2_English     0.24 1.00     3890     2723
+    ## Intercept                                          0.14 1.00     2384     2675
+    ## Ambiguity1                                        -0.10 1.00     1467     2223
+    ## Complement_type1                                   0.23 1.00     2260     2555
+    ## LanguageL2_English                                 0.04 1.00     1969     2342
+    ## Ambiguity1:Complement_type1                        0.03 1.00     2614     2895
+    ## Ambiguity1:LanguageL2_English                      0.08 1.00     1286     2587
+    ## Complement_type1:LanguageL2_English                0.06 1.00     2200     2414
+    ## Ambiguity1:Complement_type1:LanguageL2_English     0.24 1.00     2657     2599
     ## 
     ## Family Specific Parameters: 
     ##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-    ## sigma     0.41      0.01     0.40     0.43 1.00     3776     2869
+    ## sigma     0.41      0.01     0.40     0.43 1.00     3700     2751
     ## 
     ## Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
     ## and Tail_ESS are effective sample size measures, and Rhat is the potential
@@ -726,7 +1055,256 @@ pp_check(Model_r3_baye, nsamples = 100) # the observed data are plotted alongsid
     ## Warning: Argument 'nsamples' is deprecated. Please use argument 'ndraws'
     ## instead.
 
-![](SPR_Analysis_files/figure-gfm/unnamed-chunk-55-1.png)<!-- -->
+![](SPR_Analysis_files/figure-gfm/stanplot_forboth-1.png)<!-- -->
+
+# Models by group for the frequentist modeling
+
+## L1 group
+
+``` r
+R3_L1_baye <- R3 %>% filter(Language=="L1_English")
+
+Model_r3_L1_baye <- brm(corrected_log_rt~Ambiguity*Complement_type+(1|Item)
+               +(Ambiguity*Complement_type|Subject),
+               data=R3_L1_baye,
+               warmup=1000,
+               iter = 3000,
+               chains = 2,
+               inits="random",
+               cores = 2)
+```
+
+    ## Compiling Stan program...
+
+    ## Trying to compile a simple C file
+
+    ## Running /Library/Frameworks/R.framework/Resources/bin/R CMD SHLIB foo.c
+    ## clang -mmacosx-version-min=10.13 -I"/Library/Frameworks/R.framework/Resources/include" -DNDEBUG   -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/Rcpp/include/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/unsupported"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/BH/include" -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/StanHeaders/include/src/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/StanHeaders/include/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppParallel/include/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/rstan/include" -DEIGEN_NO_DEBUG  -DBOOST_DISABLE_ASSERTS  -DBOOST_PENDING_INTEGER_LOG2_HPP  -DSTAN_THREADS  -DBOOST_NO_AUTO_PTR  -include '/Library/Frameworks/R.framework/Versions/4.1/Resources/library/StanHeaders/include/stan/math/prim/mat/fun/Eigen.hpp'  -D_REENTRANT -DRCPP_PARALLEL_USE_TBB=1   -I/usr/local/include   -fPIC  -Wall -g -O2  -c foo.c -o foo.o
+    ## In file included from <built-in>:1:
+    ## In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/StanHeaders/include/stan/math/prim/mat/fun/Eigen.hpp:13:
+    ## In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/Dense:1:
+    ## In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/Core:88:
+    ## /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/src/Core/util/Macros.h:628:1: error: unknown type name 'namespace'
+    ## namespace Eigen {
+    ## ^
+    ## /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/src/Core/util/Macros.h:628:16: error: expected ';' after top level declarator
+    ## namespace Eigen {
+    ##                ^
+    ##                ;
+    ## In file included from <built-in>:1:
+    ## In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/StanHeaders/include/stan/math/prim/mat/fun/Eigen.hpp:13:
+    ## In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/Dense:1:
+    ## /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/Core:96:10: fatal error: 'complex' file not found
+    ## #include <complex>
+    ##          ^~~~~~~~~
+    ## 3 errors generated.
+    ## make: *** [foo.o] Error 1
+
+    ## Start sampling
+
+``` r
+summary(Model_r3_L1_baye)
+```
+
+    ##  Family: gaussian 
+    ##   Links: mu = identity; sigma = identity 
+    ## Formula: corrected_log_rt ~ Ambiguity * Complement_type + (1 | Item) + (Ambiguity * Complement_type | Subject) 
+    ##    Data: R3_L1_baye (Number of observations: 371) 
+    ##   Draws: 2 chains, each with iter = 3000; warmup = 1000; thin = 1;
+    ##          total post-warmup draws = 4000
+    ## 
+    ## Group-Level Effects: 
+    ## ~Item (Number of levels: 16) 
+    ##               Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+    ## sd(Intercept)     0.05      0.03     0.00     0.12 1.00     1092     1868
+    ## 
+    ## ~Subject (Number of levels: 24) 
+    ##                                                   Estimate Est.Error l-95% CI
+    ## sd(Intercept)                                         0.04      0.03     0.00
+    ## sd(Ambiguity1)                                        0.18      0.06     0.07
+    ## sd(Complement_type1)                                  0.09      0.05     0.01
+    ## sd(Ambiguity1:Complement_type1)                       0.28      0.12     0.05
+    ## cor(Intercept,Ambiguity1)                            -0.19      0.40    -0.84
+    ## cor(Intercept,Complement_type1)                       0.12      0.44    -0.76
+    ## cor(Ambiguity1,Complement_type1)                     -0.43      0.38    -0.93
+    ## cor(Intercept,Ambiguity1:Complement_type1)           -0.01      0.41    -0.78
+    ## cor(Ambiguity1,Ambiguity1:Complement_type1)           0.48      0.32    -0.27
+    ## cor(Complement_type1,Ambiguity1:Complement_type1)    -0.23      0.40    -0.87
+    ##                                                   u-95% CI Rhat Bulk_ESS
+    ## sd(Intercept)                                         0.10 1.00     1651
+    ## sd(Ambiguity1)                                        0.30 1.00     1467
+    ## sd(Complement_type1)                                  0.20 1.00     1493
+    ## sd(Ambiguity1:Complement_type1)                       0.53 1.00     1534
+    ## cor(Intercept,Ambiguity1)                             0.66 1.00      807
+    ## cor(Intercept,Complement_type1)                       0.86 1.00     1797
+    ## cor(Ambiguity1,Complement_type1)                      0.50 1.00     2145
+    ## cor(Intercept,Ambiguity1:Complement_type1)            0.74 1.00     1327
+    ## cor(Ambiguity1,Ambiguity1:Complement_type1)           0.92 1.00     2326
+    ## cor(Complement_type1,Ambiguity1:Complement_type1)     0.63 1.00     1957
+    ##                                                   Tail_ESS
+    ## sd(Intercept)                                         2013
+    ## sd(Ambiguity1)                                        1099
+    ## sd(Complement_type1)                                  1368
+    ## sd(Ambiguity1:Complement_type1)                       1283
+    ## cor(Intercept,Ambiguity1)                             1223
+    ## cor(Intercept,Complement_type1)                       2726
+    ## cor(Ambiguity1,Complement_type1)                      2343
+    ## cor(Intercept,Ambiguity1:Complement_type1)            2522
+    ## cor(Ambiguity1,Ambiguity1:Complement_type1)           2078
+    ## cor(Complement_type1,Ambiguity1:Complement_type1)     2683
+    ## 
+    ## Population-Level Effects: 
+    ##                             Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS
+    ## Intercept                       0.08      0.03     0.02     0.13 1.00     2675
+    ## Ambiguity1                     -0.23      0.05    -0.33    -0.12 1.00     2670
+    ## Complement_type1                0.13      0.04     0.04     0.21 1.00     4220
+    ## Ambiguity1:Complement_type1    -0.15      0.10    -0.34     0.04 1.00     3315
+    ##                             Tail_ESS
+    ## Intercept                       2249
+    ## Ambiguity1                      2936
+    ## Complement_type1                3076
+    ## Ambiguity1:Complement_type1     2656
+    ## 
+    ## Family Specific Parameters: 
+    ##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+    ## sigma     0.36      0.01     0.33     0.39 1.00     3018     2910
+    ## 
+    ## Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+    ## and Tail_ESS are effective sample size measures, and Rhat is the potential
+    ## scale reduction factor on split chains (at convergence, Rhat = 1).
+
+``` r
+pp_check(Model_r3_L1_baye, nsamples = 100)
+```
+
+    ## Warning: Argument 'nsamples' is deprecated. Please use argument 'ndraws'
+    ## instead.
+
+![](SPR_Analysis_files/figure-gfm/stanplot_forL1-1.png)<!-- -->
+
+## L2 group
+
+``` r
+R3_L2_baye <- R3 %>% filter(Language=="L2_English")
+
+Model_r3_L2_baye <- brm(corrected_log_rt~Ambiguity*Complement_type*nor+(1|Item)
+               +(Ambiguity*Complement_type|Subject),
+               data=R3_L2_baye,
+               warmup=1000,
+               iter = 3000,
+               chains = 2,
+               inits="random",
+               cores = 2)
+```
+
+    ## Warning: Rows containing NAs were excluded from the model.
+
+    ## Compiling Stan program...
+
+    ## Start sampling
+
+``` r
+summary(Model_r3_L2_baye)
+```
+
+    ##  Family: gaussian 
+    ##   Links: mu = identity; sigma = identity 
+    ## Formula: corrected_log_rt ~ Ambiguity * Complement_type * nor + (1 | Item) + (Ambiguity * Complement_type | Subject) 
+    ##    Data: R3_L2_baye (Number of observations: 1011) 
+    ##   Draws: 2 chains, each with iter = 3000; warmup = 1000; thin = 1;
+    ##          total post-warmup draws = 4000
+    ## 
+    ## Group-Level Effects: 
+    ## ~Item (Number of levels: 16) 
+    ##               Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+    ## sd(Intercept)     0.15      0.03     0.10     0.23 1.00     1023     1701
+    ## 
+    ## ~Subject (Number of levels: 64) 
+    ##                                                   Estimate Est.Error l-95% CI
+    ## sd(Intercept)                                         0.09      0.02     0.06
+    ## sd(Ambiguity1)                                        0.30      0.04     0.22
+    ## sd(Complement_type1)                                  0.20      0.04     0.12
+    ## sd(Ambiguity1:Complement_type1)                       0.09      0.06     0.00
+    ## cor(Intercept,Ambiguity1)                            -0.44      0.20    -0.79
+    ## cor(Intercept,Complement_type1)                       0.69      0.18     0.27
+    ## cor(Ambiguity1,Complement_type1)                     -0.06      0.22    -0.48
+    ## cor(Intercept,Ambiguity1:Complement_type1)           -0.10      0.42    -0.81
+    ## cor(Ambiguity1,Ambiguity1:Complement_type1)           0.02      0.41    -0.78
+    ## cor(Complement_type1,Ambiguity1:Complement_type1)    -0.06      0.42    -0.81
+    ##                                                   u-95% CI Rhat Bulk_ESS
+    ## sd(Intercept)                                         0.13 1.00     1633
+    ## sd(Ambiguity1)                                        0.40 1.00     1703
+    ## sd(Complement_type1)                                  0.28 1.00     2032
+    ## sd(Ambiguity1:Complement_type1)                       0.24 1.00     1512
+    ## cor(Intercept,Ambiguity1)                            -0.00 1.01      565
+    ## cor(Intercept,Complement_type1)                       0.94 1.01      771
+    ## cor(Ambiguity1,Complement_type1)                      0.38 1.00     2148
+    ## cor(Intercept,Ambiguity1:Complement_type1)            0.74 1.00     3106
+    ## cor(Ambiguity1,Ambiguity1:Complement_type1)           0.78 1.00     3555
+    ## cor(Complement_type1,Ambiguity1:Complement_type1)     0.75 1.00     3471
+    ##                                                   Tail_ESS
+    ## sd(Intercept)                                         1497
+    ## sd(Ambiguity1)                                        1940
+    ## sd(Complement_type1)                                  2583
+    ## sd(Ambiguity1:Complement_type1)                       2229
+    ## cor(Intercept,Ambiguity1)                              780
+    ## cor(Intercept,Complement_type1)                        909
+    ## cor(Ambiguity1,Complement_type1)                      2825
+    ## cor(Intercept,Ambiguity1:Complement_type1)            2580
+    ## cor(Ambiguity1,Ambiguity1:Complement_type1)           2842
+    ## cor(Complement_type1,Ambiguity1:Complement_type1)     2977
+    ## 
+    ## Population-Level Effects: 
+    ##                                 Estimate Est.Error l-95% CI u-95% CI Rhat
+    ## Intercept                           0.02      0.04    -0.07     0.10 1.00
+    ## Ambiguity1                         -0.31      0.05    -0.41    -0.22 1.00
+    ## Complement_type1                    0.06      0.04    -0.01     0.14 1.00
+    ## nor                                 0.04      0.02     0.01     0.08 1.00
+    ## Ambiguity1:Complement_type1        -0.12      0.06    -0.23    -0.01 1.00
+    ## Ambiguity1:nor                      0.00      0.05    -0.09     0.10 1.00
+    ## Complement_type1:nor               -0.00      0.04    -0.08     0.07 1.00
+    ## Ambiguity1:Complement_type1:nor    -0.01      0.06    -0.13     0.10 1.00
+    ##                                 Bulk_ESS Tail_ESS
+    ## Intercept                            695     1205
+    ## Ambiguity1                          1477     2286
+    ## Complement_type1                    2014     2795
+    ## nor                                 1805     2741
+    ## Ambiguity1:Complement_type1         4287     2933
+    ## Ambiguity1:nor                      1507     2041
+    ## Complement_type1:nor                1782     2178
+    ## Ambiguity1:Complement_type1:nor     4179     2995
+    ## 
+    ## Family Specific Parameters: 
+    ##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+    ## sigma     0.43      0.01     0.41     0.45 1.00     3066     2931
+    ## 
+    ## Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+    ## and Tail_ESS are effective sample size measures, and Rhat is the potential
+    ## scale reduction factor on split chains (at convergence, Rhat = 1).
+
+``` r
+pp_check(Model_r3_L2_baye, nsamples = 100)
+```
+
+    ## Warning: Argument 'nsamples' is deprecated. Please use argument 'ndraws'
+    ## instead.
+
+![](SPR_Analysis_files/figure-gfm/stanplot_forL2-1.png)<!-- -->
+
+## This is how to anonymize participants
+
+``` r
+anoymize <- L1_L2_SPR_bind[1:1000,]
+
+anoymize$Subject <- as.factor(anoymize$Subject)
+
+#anoymize <- anoymize %>% 
+  #count(Subject, sort = TRUE) %>% 
+  #pull(Subject) %>% 
+  #as.numeric(Subject)
+
+anoymize$Subject <- as.numeric(anoymize$Subject)
+```
 
 ## Filter a sample of data from SPR for the project for ‘Data Science’ class
 
