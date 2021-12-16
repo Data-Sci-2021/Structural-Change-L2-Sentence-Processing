@@ -1,4 +1,4 @@
-1st_progress_report_Shaohua
+Final_report
 ================
 Shaohua Fang
 12/15/2021
@@ -7,7 +7,7 @@ Shaohua Fang
 -   [Method](#method)
 -   [Results and Discussion](#results-and-discussion)
 -   [Reflection](#reflection)
--   [References:](#references)
+-   [References](#references)
 
 ## Background
 
@@ -155,7 +155,7 @@ dependency parsing on the COCA data in the future work. But aspects of
 the analysis processes are really rewarding, i.e., data wrangling,
 statistical modeling, R Markdown.
 
-## References:
+## References
 
 Dussias, P. E., & Scaltz, T. R. C. (2008). Spanish–English L2 speakers’
 use of subcategorization bias information in the resolution of temporary

@@ -1,5 +1,5 @@
 ---
-title: "1st_progress_report_Shaohua"
+title: "Final_report"
 subtitle: "Data Science for Linguists (LING 2340) Fall 2021"
 author: "Shaohua Fang"
 date: "12/15/2021"
@@ -51,7 +51,7 @@ For the self-paced reading task,the data were trimmed as follows prior to statis
 
 Overall, it's not an easy task for me to wrap up all these analysis procedures, especially for the COCA one which involves the flexible use of regular expressions. As said, it would be necessary to practice dependency parsing on the COCA data in the future work. But aspects of the analysis processes are really rewarding, i.e., data wrangling, statistical modeling, R Markdown. 
 
-## References:
+## References
 
 Dussias, P. E., & Scaltz, T. R. C. (2008). Spanish–English L2 speakers’ use of subcategorization bias information in the resolution of temporary ambiguity during second language reading. *Acta psychologica, 128*(3), 501-513.
 
