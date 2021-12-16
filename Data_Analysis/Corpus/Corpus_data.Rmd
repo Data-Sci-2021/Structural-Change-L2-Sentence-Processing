@@ -7,8 +7,6 @@ output:
     toc: TRUE
 ---
 
-Concordancing with R
-
 
 ```{r}
 # set options
@@ -23,9 +21,6 @@ library(readtext)
 library(quanteda)
 ```
 ```{r}
-# set options
-options(stringsAsFactors = F)         # no automatic data transformation
-options("scipen" = 100, "digits" = 4) # suppress math annotation
 # load packages
 library(igraph)
 library(tm)
@@ -43,16 +38,14 @@ source("https://slcladal.github.io/rscripts/POStagObject.r")
 source("https://slcladal.github.io/rscripts/parsetgraph.R")
 ```
 
-```{r}
-# download java files for CoreNLP
-#downloadCoreNLP()
-```
-
 ## reading in COCA in txt.
 
 ```{r}
 my_data <- readLines("2012_acad.txt")
+```
 
+
+```{r}
 # clean data
 my_data <- my_data %>%
  str_squish() 
@@ -92,37 +85,76 @@ POStag <- function(object){
 ## pos tagging data
 ```{r}
 textpos <- POStag(object = my_data)
-head(textpos)
-class(textpos)
+tagged <- flatten_chr(textpos)
 ```
 
-## Convert textpos in list into character
+
+## This is to extract the designated verbs in the past tense.
 ```{r}
-textpos_new <- flatten_chr(textpos)
+kwic_natural <- kwic(x = tagged, pattern = c("accepted","maintained","recalled","heard","confirmed","forgot","mentioned","found","announced","discovered","noticed","saw","acknowldged","remembered","read","revealed","doubted","negotiated","polished","scratched","packed","typed","built","painted","debated","lost","investigated","watched","knitted","visited","questioned","attacked","invaded","edited","washed","followed","typed"), window = 10) 
 ```
 
-## convert textpos into a single character vector that 'kwic' can be applied
+## This is to create columns POS for the verbs and one word following them by using regex
 ```{r}
-tagged <- sapply(textpos_new, function(x){
-  x <- paste0(x, collapse = " ")
-  x <- str_squish(x)
-})
+AA <- kwic_natural %>% 
+  as.data.frame() %>% 
+  mutate(POS = str_extract(post, "[A-Z]+"),
+         FollWord = str_extract(post, "\\S+ / \\S+"))
+head(AA)
 ```
 
-## extract the designated concordance
-```{r basekwic2, message=F, warning=F}
-kwic_natural <- kwic(x = tagged, pattern = "accepted", window = 10) 
-head(kwic_natural)
-nrow(kwic_natural)
+## This is to filter for the verbs in the VBN POS and in the not sentence-final position
+## I'd want another two subsequent words that follow FollWord to be shown so that further analyses can be done on them. Have no idea how to get them. 
 
-head(tagged)
-class(tagged)
+```{r}
+BB <- AA %>% 
+  as.data.frame() %>% 
+  mutate(POS = str_extract(post, "[A-Z]+"),
+         FollWord = str_extract(post, "\\S+ / \\S+")) %>%
+  filter(POS=="VBN",
+         FollWord!=". / .")
 ```
 
 
-```{r basekwic2, message=F, warning=F}
-kwic_natural_longer <- kwic(x = my_data, pattern = "accepted", window = 10)
-head(kwic_natural_longer)
+```{r}
+kwic_natural %>%
+  # convert to data frame
+  as.data.frame() %>%
+  # create new CleanPost where tags and words are merged
+  dplyr::mutate(CleanPost = stringr::str_replace_all(post, " {0,}/ {0,}", "/")) %>%
+  # extract tag of concordanced word
+  dplyr::mutate(PosKeyword = stringr::str_replace(CleanPost, "/([:alnum:]{2,}) .*", "\\1")) %>%
+  # extract first element after pos-tag of keyword
+  dplyr::mutate(FirstWord = stringr::str_remove(CleanPost, ".*? "),
+                FirstWord = stringr::str_remove_all(FirstWord, " .*")) %>%
+  # extract second element after pos-tag of keyword
+  dplyr::mutate(SecWord = stringr::str_remove(CleanPost, ".*? "),
+                SecWord = stringr::str_remove(SecWord, ".*? "),
+                SecWord = stringr::str_remove_all(SecWord, " .*")) %>%
+  # extract third element after pos-tag of keyword
+  dplyr::mutate(ThirdWord = stringr::str_remove(CleanPost, ".*? "),
+                ThirdWord = stringr::str_remove(ThirdWord, ".*? "),
+                ThirdWord = stringr::str_remove(ThirdWord, ".*? "),
+                ThirdWord = stringr::str_remove_all(ThirdWord, " .*")) -> BB
+# inspect results
+head(BB, 20)
+```
+
+```{r}
+BB <- BB %>% filter(PosKeyword=="VBN")
+S1 <- BB %>% filter(str_detect(FirstWord,"that")) # S-biased
+S2 <- BB %>% filter(str_detect(FirstWord,"NN|NNS|NNP"), str_detect(SecWord,"VBN"))  # S-biased
+S3 <- bind_rows(S1,S2)
+S3$bias <- "S-bias"
+CC <- left_join(BB,S3, by="docname")
+CC$bias[is.na(CC$bias)] <- "NP-biased" # decide the instances categorized as NP-biased
+CC$bias <- as.factor(CC$bias)
+```
+
+## Plot 
+```{r barplot_forCOCA,fig.width=4.5, fig.height=3.21, dpi=300}
+ggplot(data = CC) + 
+  geom_bar(mapping = aes(x = bias, y = ..prop.., group = 1), stat = "count")
 ```
 
 
